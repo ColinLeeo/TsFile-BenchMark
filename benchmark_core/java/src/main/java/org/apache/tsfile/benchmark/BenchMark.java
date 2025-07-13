@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.tsfile;
+package org.apache.tsfile.benchmark;
 
 import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.exception.read.ReadProcessException;
@@ -35,6 +35,8 @@ import org.apache.tsfile.write.record.Tablet;
 import org.apache.tsfile.write.v4.ITsFileWriter;
 import org.apache.tsfile.write.v4.TsFileWriterBuilder;
 
+import org.apache.tsfile.benchmark.ConfigLoad;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +50,10 @@ public class BenchMark {
   private static final Logger LOGGER = LoggerFactory.getLogger(BenchMark.class);
 
   public static void main(String[] args)
-      throws IOException, ReadProcessException, NoTableException, NoMeasurementException {
-    BenchMarkConf.printConfig();
+      throws IOException, ReadProcessException, NoTableException, NoMeasurementException, Exception {
+    ConfigLoad configLoad = ConfigLoad.Load("tmp/json");
+
+    System.out.println(configLoad);
     MemoryMonitor monitor = new MemoryMonitor();
     String path = "/tmp/tsfile_table_write_bench_mark.tsfile";
     File f = FSFactoryProducer.getFSFactory().getFile(path);
@@ -79,9 +83,9 @@ public class BenchMark {
     column_types.add(TSDataType.STRING);
 
     int fieldIndex = 2;
-    for (int i = 0; i < BenchMarkConf.FIELD_TYPE_VECTOR.size(); i++) {
-      int count = BenchMarkConf.FIELD_TYPE_VECTOR.get(i);
-      TSDataType dataType = BenchMarkConf.getTsDataType(i);
+    for (int i = 0; i < configLoad.field_type_vector.size(); i++) {
+      int count = configLoad.field_type_vector.get(i);
+      TSDataType dataType = configLoad.getTSDataType(i);
       for (int j = 0; j < count; j++) {
         columnSchemas.add(
             new ColumnSchemaBuilder()
@@ -104,17 +108,17 @@ public class BenchMark {
         new TsFileWriterBuilder().file(f).tableSchema(tableSchema).build()) {
       monitor.recordMemoryUsage();
       long timestamp = 0;
-      for (int table_ind = 0; table_ind < BenchMarkConf.TABLET_NUM; table_ind++) {
+      for (int table_ind = 0; table_ind < configLoad.tablet_num; table_ind++) {
         long prepareStartTime = System.nanoTime();
         Tablet tablet =
             new Tablet(
                 column_names,
                 column_types,
-                BenchMarkConf.TAG1_NUM * BenchMarkConf.TAG2_NUM * BenchMarkConf.TIMESTAMP_PER_TAG);
+                    configLoad.tag1_num * configLoad.tag2_num * configLoad.timestamp_per_tag);
         int row_count = 0;
-        for (int tag1_ind = 0; tag1_ind < BenchMarkConf.TAG1_NUM; tag1_ind++) {
-          for (int tag2_ind = 0; tag2_ind < BenchMarkConf.TAG2_NUM; tag2_ind++) {
-            for (int row = 0; row < BenchMarkConf.TIMESTAMP_PER_TAG; row++) {
+        for (int tag1_ind = 0; tag1_ind < configLoad.tag1_num; tag1_ind++) {
+          for (int tag2_ind = 0; tag2_ind < configLoad.tag2_num; tag2_ind++) {
+            for (int row = 0; row < configLoad.timestamp_per_tag; row++) {
               tablet.addTimestamp(row_count, timestamp + row);
               tablet.addValue(row_count, 0, "tag1_" + tag1_ind);
               tablet.addValue(row_count, 1, "tag2_" + tag2_ind);
@@ -152,7 +156,7 @@ public class BenchMark {
         monitor.recordMemoryUsage();
         long writeEndTime = System.nanoTime();
         totalWriteTimeNs += (writeEndTime - writeStartTime);
-        timestamp += BenchMarkConf.TIMESTAMP_PER_TAG;
+        timestamp += configLoad.timestamp_per_tag;
       }
     } catch (WriteProcessException e) {
       LOGGER.error("meet error in TsFileWrite ", e);
@@ -174,10 +178,10 @@ public class BenchMark {
     System.out.printf("writing data time is %.6f s%n", totalWriteTimeSec);
 
     long totalPoints =
-        (long) BenchMarkConf.TABLET_NUM
-            * BenchMarkConf.TAG1_NUM
-            * BenchMarkConf.TAG2_NUM
-            * BenchMarkConf.TIMESTAMP_PER_TAG
+        (long) configLoad.tablet_num
+            * configLoad.tag1_num
+            * configLoad.tag2_num
+            * configLoad.timestamp_per_tag
             * column_names.size();
     double writingSpeed = totalPoints / totalTimeSec;
     System.out.printf("writing speed is %d points/s%n", (long) writingSpeed);

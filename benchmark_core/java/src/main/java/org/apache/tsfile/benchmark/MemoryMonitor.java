@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.tsfile;
+package org.apache.tsfile.benchmark;
 
 import oshi.SystemInfo;
 import oshi.hardware.GlobalMemory;

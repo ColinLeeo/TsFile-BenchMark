@@ -17,6 +17,8 @@
 #
 import os
 from time import perf_counter
+from dataclasses import dataclass
+import json
 
 from tqdm import tqdm
 import psutil
@@ -26,40 +28,44 @@ from tsfile import TableSchema, ColumnSchema
 from tsfile import Tablet
 from tsfile import TsFileTableWriter, TsFileReader
 
+@dataclass
+class Config:
+    tablet_num: int
+    tag1_num: int
+    tag2_num: int
+    timestamp_per_tag: int
+    field_type_vector: list[int]
 
-bench_mark_conf = {
-    "tablet_num": 1000,
-    "tag1_num": 1,
-    "tag2_num": 10,
-    "timestamp_per_tag": 1000,
-    "field_type_vector": [1, 1, 1, 1, 1],
-}
+def load_config(config_path: str) -> Config:
+    with open(config_path, 'r') as f:
+        config_data = json.load(f)
+    return Config(**config_data)
 
 type_list = [TSDataType.INT32, TSDataType.INT64, TSDataType.FLOAT, TSDataType.DOUBLE, TSDataType.BOOLEAN]
 
 
-def print_config():
+def print_config(config: Config):
     data_types_name = ["INT64", "INT32", "FLOAT", "DOUBLE", "BOOLEAN"]
     print("=====================")
     print("TsFile benchmark For Python")
     print("Schema Configuration:")
     print(f"Tag Column num: {2}")
-    print(f"TAG1 num: {bench_mark_conf['tag1_num']} TAG2 num: {bench_mark_conf['tag2_num']}\n")
+    print(f"TAG1 num: {config.tag1_num} TAG2 num: {config.tag2_num}\n")
 
     print("Filed Column and types: ")
     column_num = 0
     for i in range(5):
-        print(f"{data_types_name[i]}x{bench_mark_conf['field_type_vector'][i]}  ", end="")
-        column_num += bench_mark_conf['field_type_vector'][i]
+        print(f"{data_types_name[i]}x{config.field_type_vector[i]}  ", end="")
+        column_num += config.field_type_vector[i]
 
     print("\n")
-    print(f"Tablet num: {bench_mark_conf['tablet_num']}")
-    print(f"Tablet row num per tag: {bench_mark_conf['timestamp_per_tag']}")
+    print(f"Tablet num: {config.tablet_num}")
+    print(f"Tablet row num per tag: {config.timestamp_per_tag}")
 
-    total_points = (bench_mark_conf['tablet_num'] *
-                    bench_mark_conf['tag1_num'] *
-                    bench_mark_conf['tag2_num'] *
-                    bench_mark_conf['timestamp_per_tag'] *
+    total_points = (config.tablet_num *
+                    config.tag1_num *
+                    config.tag2_num *
+                    config.timestamp_per_tag *
                     column_num)
     print(f"Total points is {total_points}")
     print("======")
@@ -88,7 +94,7 @@ def bench_mark_write():
 
 
     i = 2
-    for count, type in zip(bench_mark_conf["field_type_vector"], type_list):
+    for count, type in zip(config.field_type_vector, type_list):
         for _ in range(count):
             column_schema_list.append(ColumnSchema("FIELD" + str(i), type, ColumnCategory.FIELD))
             column_name.append("FIELD" + str(i))
@@ -105,18 +111,18 @@ def bench_mark_write():
     with TsFileTableWriter("tsfile_table_write_bench_mark.tsfile", table_schema) as writer:
         csv_writer.writerow([iter_num, get_memory_usage_kb()])
         iter_num += 1
-        for i in tqdm(range(bench_mark_conf["tablet_num"]), desc="Tablets"):
+        for i in tqdm(range(config.tablet_num), desc="Tablets"):
             csv_writer.writerow([iter_num, get_memory_usage_kb()])
             iter_num += 1
             row_num = 0
             prepare_start = perf_counter()
             tablet = Tablet(column_name, column_datat_type,
-                            bench_mark_conf["timestamp_per_tag"] * bench_mark_conf["tag1_num"] *
-                            bench_mark_conf["tag2_num"])
+                            config.timestamp_per_tag * config.tag1_num *
+                            config.tag2_num)
 
-            for j in range(bench_mark_conf["tag1_num"]):
-                for k in range(bench_mark_conf["tag2_num"]):
-                    for row in range(bench_mark_conf["timestamp_per_tag"]):
+            for j in range(config.tag1_num):
+                for k in range(config.tag2_num):
+                    for row in range(config.timestamp_per_tag):
                         tablet.add_timestamp(row_num, timestamp + row)
                         tablet.add_value_by_index(0, row_num, "tag1_" + str(j))
                         tablet.add_value_by_index(1, row_num, "tag2_" + str(k))
@@ -139,7 +145,7 @@ def bench_mark_write():
             iter_num += 1
             writer.write_table(tablet)
             writing_time += perf_counter() - write_start
-            timestamp = timestamp + bench_mark_conf["timestamp_per_tag"]
+            timestamp = timestamp + config.timestamp_per_tag
             csv_writer.writerow([iter_num, get_memory_usage_kb()])
             iter_num += 1
 
@@ -149,8 +155,8 @@ def bench_mark_write():
     total_time = end - start
     size = os.path.getsize("tsfile_table_write_bench_mark.tsfile")
 
-    total_points = bench_mark_conf["tablet_num"] * bench_mark_conf["tag1_num"] * bench_mark_conf["tag2_num"] * \
-                   bench_mark_conf["timestamp_per_tag"] * len(column_name)
+    total_points = config.tablet_num * config.tag1_num * config.tag2_num * \
+                   config.timestamp_per_tag * len(column_name)
 
     print("finish bench mark for python")
     print(f"tsfile size is {size} bytes ~ {size // 1024}KB")
