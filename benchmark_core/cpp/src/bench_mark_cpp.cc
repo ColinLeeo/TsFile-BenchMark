@@ -20,11 +20,12 @@
 #include <reader/tsfile_reader.h>
 
 #include <chrono>
+#include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
-#include "bench_conf.h"
 #include "bench_mark_c_cpp.h"
 #include "bench_mark_utils.h"
 #include "common/db_common.h"
@@ -39,6 +40,14 @@ using namespace common;
 
 std::vector<std::string> columns_name;
 std::vector<TSDataType> data_types;
+using json = nlohmann::json;
+
+json result;
+void save_result_to_json() {
+    std::ofstream file("/result/results_cpp.json");
+    file << std::setw(2) << result << std::endl;
+    file.close();
+}
 
 TableSchema* gen_table_schema(const std::vector<int>& field_type_vector) {
     std::vector<common::ColumnSchema> schemas;
@@ -50,25 +59,27 @@ TableSchema* gen_table_schema(const std::vector<int>& field_type_vector) {
         columns_name.push_back(column_name);
         data_types.push_back(TSDataType::STRING);
     }
-    for (int i = 0; i < field_type_vector.size(); i++) {
-        int column_num = field_type_vector[i];
+
+    int i = 2;
+    int index = 0;
+    for (int column_num : field_type_vector) {
         for (int j = 0; j < column_num; j++) {
-            auto column_name =
-                std::string("FIELD" + std::to_string(i) + std::to_string(j));
-            auto type = static_cast<TSDataType>(data_type[i]);
+            auto column_name = std::string("FIELD" + std::to_string(i++));
+            auto type = static_cast<TSDataType>(data_type[index]);
             data_types.push_back(type);
             columns_name.push_back(column_name);
             schemas.emplace_back(column_name, type, ColumnCategory::FIELD);
         }
+        index++;
     }
     return new TableSchema("TestTable", schemas);
 }
 
 int bench_mark_cpp_write() {
     int code = common::E_OK;
-    Config config = load_config("config.json");
+    Config config = load_config("/tmp/config.json");
     print_config(true, config);
-    remove("bench_mark_cpp.tsfile");
+    remove("tsfile_table_write_bench_mark_cpp.tsfile");
     libtsfile_init();
     // benchmark for write
     WriteFile file = WriteFile();
@@ -78,7 +89,7 @@ int bench_mark_cpp_write() {
     flags |= O_BINARY;
 #endif
     mode_t mode = 0666;
-    code = file.create("bench_mark_cpp.tsfile", flags, mode);
+    code = file.create("tsfile_table_write_bench_mark_cpp.tsfile", flags, mode);
     if (code != common::E_OK) {
         return -1;
     }
@@ -90,7 +101,7 @@ int bench_mark_cpp_write() {
     }
     csv_file << "iter_num,memory_usage(kb)\n";
     int iter_num = 0;
-    csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+    csv_file << iter_num++ << "," << get_memory_usage() << "\n";
 
     TableSchema* table_schema = gen_table_schema(config.field_type_vector);
     auto writer = new TsFileTableWriter(&file, table_schema);
@@ -100,12 +111,9 @@ int bench_mark_cpp_write() {
     int64_t prepare_time = 0;
     int64_t writing_time = 0;
 
-    auto start = std::chrono::high_resolution_clock::now();
-
-
     for (int tablet_i = 0; tablet_i < config.tablet_num; tablet_i++) {
-        csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
-        print_progress_bar(tablet_i, config.tablet_num);
+        csv_file << iter_num++ << "," << get_memory_usage() << "\n";
+        // print_progress_bar(tablet_i, config.tablet_num);
         auto prepare_start = std::chrono::high_resolution_clock::now();
         auto tablet = Tablet(
             columns_name, data_types,
@@ -125,39 +133,39 @@ int bench_mark_cpp_write() {
                         switch (data_types[col]) {
                             case TSDataType::INT32:
                                 tablet.add_value(
-                                    row_num, col,
+                                    row_num, col + 2,
                                     static_cast<int32_t>(timestamp));
                                 break;
                             case TSDataType::INT64:
                                 tablet.add_value(
-                                    row_num, col,
+                                    row_num, col + 2,
                                     static_cast<int64_t>(timestamp));
                                 break;
                             case TSDataType::FLOAT:
                                 tablet.add_value(
-                                    row_num, col,
+                                    row_num, col + 2,
                                     static_cast<float>(timestamp * 1.1));
                                 break;
                             case TSDataType::DOUBLE:
                                 tablet.add_value(
-                                    row_num, col,
+                                    row_num, col + 2,
                                     static_cast<double>(timestamp * 1.1));
                                 break;
 
                             case TSDataType::BOOLEAN:
                                 tablet.add_value(
-                                    row_num, col,
+                                    row_num, col + 2,
                                     static_cast<bool>(timestamp % 2));
                                 break;
-                            default:
-                                ;
+                            default:;
                         }
                     }
                     row_num++;
                 }
             }
+            csv_file << iter_num++ << "," << get_memory_usage() << "\n";
         }
-        csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+        csv_file << iter_num++ << "," << get_memory_usage() << "\n";
         auto prepare_end = std::chrono::high_resolution_clock::now();
 
         prepare_time += std::chrono::duration_cast<std::chrono::microseconds>(
@@ -171,63 +179,60 @@ int bench_mark_cpp_write() {
                             write_end - write_start)
                             .count();
         timestamp += config.timestamp_per_tag;
-        csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+        csv_file << iter_num++ << "," << get_memory_usage() << "\n";
     }
-    csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+
+    csv_file << iter_num++ << "," << get_memory_usage() << "\n";
     auto close_start = std::chrono::high_resolution_clock::now();
     writer->flush();
-    csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+    csv_file << iter_num++ << "," << get_memory_usage() << "\n";
     writer->close();
-    csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+    csv_file << iter_num++ << "," << get_memory_usage() << "\n";
     auto close_end = std::chrono::high_resolution_clock::now();
 
     writing_time += std::chrono::duration_cast<std::chrono::microseconds>(
                         close_end - close_start)
                         .count();
     delete writer;
-    auto end = std::chrono::high_resolution_clock::now();
 
-    FILE* file_to_size = fopen("bench_mark_cpp.tsfile", "rb");
+    FILE* file_to_size =
+        fopen("tsfile_table_write_bench_mark_cpp.tsfile", "rb");
     if (!file_to_size) {
         std::cout << "unable to open file" << std::endl;
         return -1;
     }
-    csv_file << iter_num++ <<","<< get_memory_usage() << "\n";
+    csv_file << iter_num++ << "," << get_memory_usage() << "\n";
     fseeko(file_to_size, 0, SEEK_END);
     off_t size = ftello(file_to_size);
     fclose(file_to_size);
 
-    std::cout << "=======" << std::endl;
     std::cout << "Finish writing for CPP" << std::endl;
     std::cout << "Tsfile size is " << size << " bytes " << " ~ " << size / 1024
               << "KB" << std::endl;
 
     double pre_time = prepare_time / 1000.0 / 1000.0;
     double write_time = writing_time / 1000.0 / 1000.0;
+    double writing_speed = static_cast<long long>(
+        config.tablet_num * config.tag1_num * config.tag2_num *
+        config.timestamp_per_tag * (data_types.size() - 2) /
+        (pre_time + write_time));
     std::cout << "Preparing time is " << pre_time << " s" << std::endl;
-    std::cout << "Writing  time is " << write_time << " s" << std::endl;
-    std::cout << "writing speed is "
-              << static_cast<long long>(
-                     config.tablet_num * config.tag1_num * config.tag2_num *
-                     config.timestamp_per_tag * data_types.size() /
-                     (pre_time + write_time))
-              << " points/s" << std::endl;
-    std::cout << "total time is "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end -
-                                                                       start)
-                         .count() /
-                     1000.0 / 1000.0
-              << " s" << std::endl;
-    std::cout << "=====" << std::endl;
+    std::cout << "Writing time is " << write_time << " s" << std::endl;
+    std::cout << "writing speed is " << writing_speed << " points/s"
+              << std::endl;
+
+    result["tsfile_size"] = size / 1024;
+    result["prepare_time"] = pre_time;
+    result["write_time"] = write_time;
+    result["writing_speed"] = writing_time;
     return 0;
 }
 
 int bench_mark_cpp_read() {
-    std::cout << "bench mark cpp read" << std::endl;
     libtsfile_init();
     int code = common::E_OK;
     TsFileReader reader = TsFileReader();
-    reader.open("bench_mark_cpp.tsfile");
+    reader.open("tsfile_table_write_bench_mark_cpp.tsfile");
     ResultSet* result_set = nullptr;
     code = reader.query("TestTable", columns_name, INT64_MIN, INT64_MAX,
                         result_set);
@@ -242,7 +247,7 @@ int bench_mark_cpp_read() {
     reader.close();
     delete result_set;
     auto read_end = std::chrono::high_resolution_clock::now();
-    int64_t total_points = row * columns_name.size();
+    int64_t total_points = row * (columns_name.size() - 2);
     double reading_time = std::chrono::duration_cast<std::chrono::microseconds>(
                               read_end - read_start)
                               .count() /
@@ -253,6 +258,8 @@ int bench_mark_cpp_read() {
     std::cout << "read speed:"
               << static_cast<int64_t>(total_points / reading_time)
               << " points/s" << std::endl;
-    std::cout << "====================" << std::endl;
+    result["reading_time"] = reading_time;
+    result["reading_speed"] = static_cast<int64_t>(total_points / reading_time);
+
     return 0;
 }

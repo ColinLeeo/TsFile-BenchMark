@@ -167,12 +167,12 @@ def bench_mark_write():
     total_points = config.tablet_num * config.tag1_num * config.tag2_num * \
                    config.timestamp_per_tag * (len(column_name) - 2)
 
-    print("finish bench mark for python")
-    print(f"tsfile size is {size} bytes ~ {size // 1024}KB")
-    print(f"prepare data time is {prepare_time:.6f} s")
-    print(f"writing data time is {writing_time:.6f} s")
+    print("Finish bench mark for python")
+    print(f"Fsfile size is {size} bytes ~ {size // 1024}KB")
+    print(f"Prepare data time is {prepare_time:.6f} s")
+    print(f"Writing data time is {writing_time:.6f} s")
     writing_speed = int(total_points / (prepare_time + writing_time))
-    print(f"writing speed is {writing_speed} points/s")
+    print(f"Writing speed is {writing_speed} points/s")
     results["tsfile_size"] = size // 1024
     results["prepare_time"] = round(prepare_time, 6)
     results["writing_time"] = round(writing_time, 6)

@@ -53,11 +53,11 @@ Config load_config(const std::string& config_path) {
 
 void print_config(bool is_cpp, Config config) {
     std::cout << "====================" << std::endl;
-    std::cout << "TsFile Benchmark "<< (is_cpp ? "CPP" : "C") <<" Begin " << std::endl;
-    std::cout << "Tag Column num: " << 2 << std::endl;
-    std::cout << "TAG1 num: " << config.tag1_num << " TAG2 num: " << config.tag2_num
+    std::cout << "TsFile benchmark For CPP" << std::endl;
+    std::cout << "Schema Configuration:" << std::endl;
+    std::cout << "TAG1 num: " << config.tag1_num << ", TAG2 num: " << config.tag2_num
               << std::endl;
-    std::cout << "Filed column (type x num) :  " << std::endl;
+    std::cout << "Filed columns (type x num) :  " << std::endl;
     int column_num = 0;
     for (int i = 0; i < 5; i++) {
         std::cout << data_types_name[i] << "x" << config.field_type_vector[i] << " ";

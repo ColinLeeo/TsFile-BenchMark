@@ -19,9 +19,8 @@
 #ifndef TSFILE_BENCH_MARK_BENCH_MARK_C_CPP_H
 #define TSFILE_BENCH_MARK_BENCH_MARK_C_CPP_H
 
-int bench_mark_c_write();
 int bench_mark_cpp_read();
 int bench_mark_cpp_write();
-int bench_mark_c_read();
+void save_result_to_json();
 
 #endif // TSFILE_BENCH_MARK_BENCH_MARK_C_CPP_H

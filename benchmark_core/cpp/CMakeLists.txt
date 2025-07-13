@@ -24,6 +24,8 @@ if(DEFINED ENV{CXX})
     set(CMAKE_CXX_COMPILER $ENV{CXX})
 endif()
 
+set(LIBRARY_INCLUDE_DIR /Users/colin/dev/tsfile/cpp/src)
+
 include_directories(
         ${LIBRARY_INCLUDE_DIR}
         ${THIRD_PARTY_INCLUDE}
@@ -48,7 +50,6 @@ message("CMAKE DEBUG: CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 add_executable(bench_mark
         src/bench_mark_cpp.cc
-        src/bench_mark_c.cc
         src/bench_mark.cc
         src/bench_mark_utils.cc)
 target_link_libraries(bench_mark tsfile)
