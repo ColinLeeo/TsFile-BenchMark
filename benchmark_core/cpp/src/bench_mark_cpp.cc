@@ -129,32 +129,32 @@ int bench_mark_cpp_write() {
                     tablet.add_value(
                         row_num, 1,
                         std::string("tag2_" + std::to_string(tag2)).c_str());
-                    for (int col = 0; col < data_types.size(); col++) {
+                    for (int col = 2; col < data_types.size(); col++) {
                         switch (data_types[col]) {
                             case TSDataType::INT32:
                                 tablet.add_value(
-                                    row_num, col + 2,
+                                    row_num, col,
                                     static_cast<int32_t>(timestamp));
                                 break;
                             case TSDataType::INT64:
                                 tablet.add_value(
-                                    row_num, col + 2,
+                                    row_num, col,
                                     static_cast<int64_t>(timestamp));
                                 break;
                             case TSDataType::FLOAT:
                                 tablet.add_value(
-                                    row_num, col + 2,
+                                    row_num, col,
                                     static_cast<float>(timestamp * 1.1));
                                 break;
                             case TSDataType::DOUBLE:
                                 tablet.add_value(
-                                    row_num, col + 2,
+                                    row_num, col,
                                     static_cast<double>(timestamp * 1.1));
                                 break;
 
                             case TSDataType::BOOLEAN:
                                 tablet.add_value(
-                                    row_num, col + 2,
+                                    row_num, col,
                                     static_cast<bool>(timestamp % 2));
                                 break;
                             default:;
@@ -163,7 +163,6 @@ int bench_mark_cpp_write() {
                     row_num++;
                 }
             }
-            csv_file << iter_num++ << "," << get_memory_usage() << "\n";
         }
         csv_file << iter_num++ << "," << get_memory_usage() << "\n";
         auto prepare_end = std::chrono::high_resolution_clock::now();

@@ -142,9 +142,7 @@ def bench_mark_write():
                             elif column_datat_type[col] == TSDataType.BOOLEAN:
                                 tablet.add_value_by_index(col, row_num, timestamp % 2 == 0)
                         row_num = row_num + 1
-                csv_writer.writerow([iter_num, get_memory_usage_kb()])
-                iter_num += 1
-
+                        
             prepare_time += perf_counter() - prepare_start
             write_start = perf_counter()
             csv_writer.writerow([iter_num, get_memory_usage_kb()])

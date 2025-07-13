@@ -21,6 +21,7 @@ package org.apache.tsfile.benchmark;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tsfile.enums.TSDataType;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -42,7 +43,23 @@ public class ConfigLoad {
     }
 
     public TSDataType getTSDataType(int i) {
-        return TSDataType.values()[i];
+        switch (i) {
+            case 0:
+                return TSDataType.BOOLEAN;
+            case 1:
+                return TSDataType.INT32;
+            case 2:
+                return TSDataType.INT64;
+            case 3:
+                return TSDataType.FLOAT;
+            case 4:
+                return TSDataType.DOUBLE;
+            case 5:
+                return TSDataType.BOOLEAN;
+            default:
+                throw new RuntimeException("Unknown TSDataType: " + i);
+        }
+        return TSDataType.UNKNOWN;
     }
 
     @Override

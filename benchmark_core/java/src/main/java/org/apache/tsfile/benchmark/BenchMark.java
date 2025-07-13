@@ -19,6 +19,7 @@
 
 package org.apache.tsfile.benchmark;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.exception.read.ReadProcessException;
 import org.apache.tsfile.exception.write.NoMeasurementException;
@@ -44,164 +45,146 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BenchMark {
-  private static final Logger LOGGER = LoggerFactory.getLogger(BenchMark.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BenchMark.class);
 
-  public static void main(String[] args)
-      throws IOException, ReadProcessException, NoTableException, NoMeasurementException, Exception {
-    ConfigLoad configLoad = ConfigLoad.Load("tmp/json");
+    public static void main(String[] args) throws Exception {
+        ConfigLoad configLoad = ConfigLoad.Load("tmp/json");
+        System.out.println(configLoad);
 
-    System.out.println(configLoad);
-    MemoryMonitor monitor = new MemoryMonitor();
-    String path = "/tmp/tsfile_table_write_bench_mark.tsfile";
-    File f = FSFactoryProducer.getFSFactory().getFile(path);
-    if (f.exists()) {
-      Files.delete(f.toPath());
-    }
-    monitor.recordMemoryUsage();
-    List<String> column_names = new ArrayList<>();
-    List<TSDataType> column_types = new ArrayList<>();
-    List<ColumnSchema> columnSchemas = new ArrayList<>();
-    columnSchemas.add(
-        new ColumnSchemaBuilder()
-            .name("TAG1")
-            .dataType(TSDataType.STRING)
-            .category(Tablet.ColumnCategory.TAG)
-            .build());
-
-    columnSchemas.add(
-        new ColumnSchemaBuilder()
-            .name("TAG2")
-            .dataType(TSDataType.STRING)
-            .category(Tablet.ColumnCategory.TAG)
-            .build());
-    column_names.add("TAG1");
-    column_names.add("TAG2");
-    column_types.add(TSDataType.STRING);
-    column_types.add(TSDataType.STRING);
-
-    int fieldIndex = 2;
-    for (int i = 0; i < configLoad.field_type_vector.size(); i++) {
-      int count = configLoad.field_type_vector.get(i);
-      TSDataType dataType = configLoad.getTSDataType(i);
-      for (int j = 0; j < count; j++) {
-        columnSchemas.add(
-            new ColumnSchemaBuilder()
-                .name("FIELD" + fieldIndex)
-                .dataType(dataType)
-                .category(Tablet.ColumnCategory.FIELD)
-                .build());
-        column_names.add("FIELD" + fieldIndex);
-        column_types.add(dataType);
-        fieldIndex++;
-      }
-    }
-    monitor.recordMemoryUsage();
-    long totalPrepareTimeNs = 0;
-    long totalWriteTimeNs = 0;
-    long start = System.nanoTime();
-    TableSchema tableSchema = new TableSchema("TestTable", columnSchemas);
-    monitor.recordMemoryUsage();
-    try (ITsFileWriter writer =
-        new TsFileWriterBuilder().file(f).tableSchema(tableSchema).build()) {
-      monitor.recordMemoryUsage();
-      long timestamp = 0;
-      for (int table_ind = 0; table_ind < configLoad.tablet_num; table_ind++) {
-        long prepareStartTime = System.nanoTime();
-        Tablet tablet =
-            new Tablet(
-                column_names,
-                column_types,
-                    configLoad.tag1_num * configLoad.tag2_num * configLoad.timestamp_per_tag);
-        int row_count = 0;
-        for (int tag1_ind = 0; tag1_ind < configLoad.tag1_num; tag1_ind++) {
-          for (int tag2_ind = 0; tag2_ind < configLoad.tag2_num; tag2_ind++) {
-            for (int row = 0; row < configLoad.timestamp_per_tag; row++) {
-              tablet.addTimestamp(row_count, timestamp + row);
-              tablet.addValue(row_count, 0, "tag1_" + tag1_ind);
-              tablet.addValue(row_count, 1, "tag2_" + tag2_ind);
-
-              for (int i = 2; i < column_types.size(); i++) {
-                switch (column_types.get(i)) {
-                  case INT32:
-                    tablet.addValue(row_count, i, (int) timestamp);
-                    break;
-                  case INT64:
-                    tablet.addValue(row_count, i, timestamp);
-                    break;
-                  case FLOAT:
-                    tablet.addValue(row_count, i, (float) (timestamp * 1.1));
-                    break;
-                  case DOUBLE:
-                    tablet.addValue(row_count, i, (double) timestamp * 1.1);
-                    break;
-                  case BOOLEAN:
-                    tablet.addValue(row_count, i, timestamp % 2 == 0);
-                  default:
-                    //
-                }
-              }
-              row_count++;
-            }
-          }
+        MemoryMonitor monitor = new MemoryMonitor();
+        String path = "tsfile_table_write_bench_mark_java.tsfile";
+        File f = FSFactoryProducer.getFSFactory().getFile(path);
+        if (f.exists()) {
+            Files.delete(f.toPath());
         }
         monitor.recordMemoryUsage();
-        long prepareEndTime = System.nanoTime();
+        List<String> column_names = new ArrayList<>();
+        List<TSDataType> column_types = new ArrayList<>();
+        List<ColumnSchema> columnSchemas = new ArrayList<>();
+        columnSchemas.add(new ColumnSchemaBuilder().name("TAG1").dataType(TSDataType.STRING).category(Tablet.ColumnCategory.TAG).build());
+        columnSchemas.add(new ColumnSchemaBuilder().name("TAG2").dataType(TSDataType.STRING).category(Tablet.ColumnCategory.TAG).build());
+        column_names.add("TAG1");
+        column_names.add("TAG2");
+        column_types.add(TSDataType.STRING);
+        column_types.add(TSDataType.STRING);
 
-        totalPrepareTimeNs += (prepareEndTime - prepareStartTime);
-        long writeStartTime = System.nanoTime();
-        writer.write(tablet);
+        int fieldIndex = 2;
+        for (int i = 0; i < configLoad.field_type_vector.size(); i++) {
+            int count = configLoad.field_type_vector.get(i);
+            TSDataType dataType = configLoad.getTSDataType(i);
+            for (int j = 0; j < count; j++) {
+                columnSchemas.add(new ColumnSchemaBuilder().name("FIELD" + fieldIndex).dataType(dataType).category(Tablet.ColumnCategory.FIELD).build());
+                column_names.add("FIELD" + fieldIndex);
+                column_types.add(dataType);
+                fieldIndex++;
+            }
+        }
         monitor.recordMemoryUsage();
+        long totalPrepareTimeNs = 0;
+        long totalWriteTimeNs = 0;
+        long writeStartTime = 0;
+        TableSchema tableSchema = new TableSchema("TestTable", columnSchemas);
+        monitor.recordMemoryUsage();
+        try (ITsFileWriter writer = new TsFileWriterBuilder().file(f).tableSchema(tableSchema).build()) {
+            monitor.recordMemoryUsage();
+            long timestamp = 0;
+            for (int table_ind = 0; table_ind < configLoad.tablet_num; table_ind++) {
+                long prepareStartTime = System.nanoTime();
+                Tablet tablet = new Tablet(column_names, column_types, configLoad.tag1_num * configLoad.tag2_num * configLoad.timestamp_per_tag);
+                int row_count = 0;
+                for (int tag1_ind = 0; tag1_ind < configLoad.tag1_num; tag1_ind++) {
+                    for (int tag2_ind = 0; tag2_ind < configLoad.tag2_num; tag2_ind++) {
+                        for (int row = 0; row < configLoad.timestamp_per_tag; row++) {
+                            tablet.addTimestamp(row_count, timestamp + row);
+                            tablet.addValue(row_count, 0, "tag1_" + tag1_ind);
+                            tablet.addValue(row_count, 1, "tag2_" + tag2_ind);
+
+                            for (int i = 2; i < column_types.size(); i++) {
+                                switch (column_types.get(i)) {
+                                    case INT32:
+                                        tablet.addValue(row_count, i, (int) timestamp);
+                                        break;
+                                    case INT64:
+                                        tablet.addValue(row_count, i, timestamp);
+                                        break;
+                                    case FLOAT:
+                                        tablet.addValue(row_count, i, (float) (timestamp * 1.1));
+                                        break;
+                                    case DOUBLE:
+                                        tablet.addValue(row_count, i, (double) timestamp * 1.1);
+                                        break;
+                                    case BOOLEAN:
+                                        tablet.addValue(row_count, i, timestamp % 2 == 0);
+                                    default:
+                                        //
+                                }
+                            }
+                            row_count++;
+                        }
+                    }
+                }
+                monitor.recordMemoryUsage();
+                long prepareEndTime = System.nanoTime();
+
+                totalPrepareTimeNs += (prepareEndTime - prepareStartTime);
+                writeStartTime = System.nanoTime();
+                writer.write(tablet);
+                monitor.recordMemoryUsage();
+                long writeEndTime = System.nanoTime();
+                totalWriteTimeNs += (writeEndTime - writeStartTime);
+                timestamp += configLoad.timestamp_per_tag;
+            }
+            writeStartTime = System.nanoTime();
+        } catch (WriteProcessException e) {
+            LOGGER.error("meet error in TsFileWrite ", e);
+        }
         long writeEndTime = System.nanoTime();
         totalWriteTimeNs += (writeEndTime - writeStartTime);
-        timestamp += configLoad.timestamp_per_tag;
-      }
-    } catch (WriteProcessException e) {
-      LOGGER.error("meet error in TsFileWrite ", e);
+        monitor.recordMemoryUsage();
+        long end = System.nanoTime();
+        double totalPrepareTimeSec = totalPrepareTimeNs / 1_000_000_000.0;
+        double totalWriteTimeSec = totalWriteTimeNs / 1_000_000_000.0;
+        long size = f.length();
+
+        monitor.close();
+        System.out.println("Finish bench mark for java");
+        System.out.printf("Tsfile size is %d bytes ~ %dKB%n", size, size / 1024);
+
+        System.out.printf("Prepare data time is %.6f s%n", totalPrepareTimeSec);
+        System.out.printf("Writing data time is %.6f s%n", totalWriteTimeSec);
+
+        long totalPoints = (long) configLoad.tablet_num * configLoad.tag1_num * configLoad.tag2_num * configLoad.timestamp_per_tag * (column_names.size() - 2);
+        double writingSpeed = totalPoints / (totalPrepareTimeSec + totalWriteTimeSec);
+        System.out.printf("writing speed is %d points/s%n", (long) writingSpeed);
+        Map<String, Object> result = new HashMap<>();
+        result.put("tsfile_size", size / 1024);
+        result.put("prepare_time", totalPrepareTimeSec);
+        result.put("write_time", totalWriteTimeSec);
+        result.put("writing_speed", writingSpeed);
+
+
+        Integer row = 0;
+        long read_start = System.nanoTime();
+        try (ITsFileReader reader = new TsFileReaderBuilder().file(f).build()) {
+            ResultSet resultSet = reader.query("TestTable", column_names, Long.MIN_VALUE, Long.MAX_VALUE);
+            while (resultSet.next()) {
+                row++;
+            }
+        }
+        System.out.println("row is " + row);
+        long read_end = System.nanoTime();
+        double totalReadTimeSec = (read_end - read_start) / 1_000_000_000.0;
+        System.out.printf("read time is %.6f s%n", totalReadTimeSec);
+        Long readSpeed = Math.round(row * column_names.size() / totalReadTimeSec);
+        System.out.printf("read speed is %.6f points/s %n", readSpeed);
+        result.put("reading_time", totalReadTimeSec);
+        result.put("reading_speed", readSpeed);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.writerWithDefaultPrettyPrinter().writeValue(new File("/result/results_java.json"), result);
     }
-    monitor.recordMemoryUsage();
-    long end = System.nanoTime();
-    double totalPrepareTimeSec = totalPrepareTimeNs / 1_000_000_000.0;
-    double totalWriteTimeSec = totalWriteTimeNs / 1_000_000_000.0;
-    double totalTimeSec = (end - start) / 1_000_000_000.0;
-
-    long size = f.length();
-
-    monitor.close();
-    System.out.println("====================");
-    System.out.println("finish bench mark for java");
-    System.out.printf("tsfile size is %d bytes ~ %dKB%n", size, size / 1024);
-
-    System.out.printf("prepare data time is %.6f s%n", totalPrepareTimeSec);
-    System.out.printf("writing data time is %.6f s%n", totalWriteTimeSec);
-
-    long totalPoints =
-        (long) configLoad.tablet_num
-            * configLoad.tag1_num
-            * configLoad.tag2_num
-            * configLoad.timestamp_per_tag
-            * column_names.size();
-    double writingSpeed = totalPoints / totalTimeSec;
-    System.out.printf("writing speed is %d points/s%n", (long) writingSpeed);
-
-    System.out.printf("total time is %.6f s%n", totalTimeSec);
-    System.out.println("====================");
-
-    Integer row = 0;
-    long read_start = System.nanoTime();
-    try (ITsFileReader reader = new TsFileReaderBuilder().file(f).build()) {
-      ResultSet resultSet = reader.query("TestTable", column_names, Long.MIN_VALUE, Long.MAX_VALUE);
-      while (resultSet.next()) {
-        row++;
-      }
-    }
-    System.out.println("row is " + row);
-    long read_end = System.nanoTime();
-    double totalReadTimeSec = (read_end - read_start) / 1_000_000_000.0;
-    System.out.printf("read time is %.6f s%n", totalReadTimeSec);
-    double readSpeed = row * column_names.size() / totalReadTimeSec;
-    System.out.printf("read speed is %.6f points/s %n", readSpeed);
-  }
 }
