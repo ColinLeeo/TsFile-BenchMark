@@ -1,0 +1,7 @@
+{
+  "tablet_num": 100,
+  "tag1_num": 5,
+  "tag2_num": 10,
+  "timestamp_per_tag": 10000,
+  "field_type_vector": [1, 1, 1, 1, 1]
+}

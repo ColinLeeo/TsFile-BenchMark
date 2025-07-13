@@ -49,13 +49,11 @@ def print_config(config: Config):
     print("=====================")
     print("TsFile benchmark For Python")
     print("Schema Configuration:")
-    print(f"Tag Column num: {2}")
-    print(f"TAG1 num: {config.tag1_num} TAG2 num: {config.tag2_num}\n")
-
+    print(f"TAG1 num: {config.tag1_num}, TAG2 num: {config.tag2_num}")
     print("Filed Column and types: ")
     column_num = 0
     for i in range(5):
-        print(f"{data_types_name[i]}x{config.field_type_vector[i]}  ", end="")
+        print(f"{data_types_name[i]}x{config.field_type_vector[i]} ", end="")
         column_num += config.field_type_vector[i]
 
     print("\n")
@@ -68,21 +66,28 @@ def print_config(config: Config):
                     config.timestamp_per_tag *
                     column_num)
     print(f"Total points is {total_points}")
-    print("======")
+    print("=====================\n")
 
 column_name = []
-
+results = {}
 def get_memory_usage_kb():
     process = psutil.Process(os.getpid())
     return process.memory_info().rss // 1024
 
 def bench_mark_write():
-    csv_file = "memory_usage_python.csv"
+    ## 1. load configuration
+    config = load_config("/tmp/conf.json")
+    print_config(config)
 
+    ## 2. create csv file for memory usage
+    csv_file = "memory_usage_python.csv"
     csv_writer = csv.writer(open(csv_file, "w"))
     csv_writer.writerow(["iter_num", "memory_usage(kb)"])
     iter_num = 0
-    print_config()
+
+    ## create json for results
+
+
     column_schema_list = []
     column_datat_type = []
     column_schema_list.append(ColumnSchema("TAG1", TSDataType.STRING, ColumnCategory.TAG))
@@ -103,12 +108,11 @@ def bench_mark_write():
 
     timestamp = 0
     table_schema = TableSchema("TestTable", column_schema_list)
-    start = perf_counter()
     prepare_time = 0
     writing_time = 0
     csv_writer.writerow([iter_num, get_memory_usage_kb()])
     iter_num += 1
-    with TsFileTableWriter("tsfile_table_write_bench_mark.tsfile", table_schema) as writer:
+    with TsFileTableWriter("tsfile_table_write_bench_mark_python.tsfile", table_schema) as writer:
         csv_writer.writerow([iter_num, get_memory_usage_kb()])
         iter_num += 1
         for i in tqdm(range(config.tablet_num), desc="Tablets"):
@@ -138,6 +142,8 @@ def bench_mark_write():
                             elif column_datat_type[col] == TSDataType.BOOLEAN:
                                 tablet.add_value_by_index(col, row_num, timestamp % 2 == 0)
                         row_num = row_num + 1
+                csv_writer.writerow([iter_num, get_memory_usage_kb()])
+                iter_num += 1
 
             prepare_time += perf_counter() - prepare_start
             write_start = perf_counter()
@@ -148,27 +154,32 @@ def bench_mark_write():
             timestamp = timestamp + config.timestamp_per_tag
             csv_writer.writerow([iter_num, get_memory_usage_kb()])
             iter_num += 1
+        ## will close the writer automatically
+        write_start = perf_counter()
+
+    writing_time += perf_counter() - write_start
+
 
     csv_writer.writerow([iter_num, get_memory_usage_kb()])
     iter_num += 1
-    end = perf_counter()
-    total_time = end - start
-    size = os.path.getsize("tsfile_table_write_bench_mark.tsfile")
+    size = os.path.getsize("tsfile_table_write_bench_mark_python.tsfile")
 
     total_points = config.tablet_num * config.tag1_num * config.tag2_num * \
-                   config.timestamp_per_tag * len(column_name)
+                   config.timestamp_per_tag * (len(column_name) - 2)
 
     print("finish bench mark for python")
     print(f"tsfile size is {size} bytes ~ {size // 1024}KB")
-
     print(f"prepare data time is {prepare_time:.6f} s")
     print(f"writing data time is {writing_time:.6f} s")
-    print(f" total_time is {total_time} s")
     writing_speed = int(total_points / (prepare_time + writing_time))
     print(f"writing speed is {writing_speed} points/s")
+    results["tsfile_size"] = size // 1024
+    results["prepare_time"] = round(prepare_time, 6)
+    results["writing_time"] = round(writing_time, 6)
+    results["writing_speed"] = writing_speed
 
-    total_time_seconds = (end - start)
-    print(f"total time is {total_time_seconds:.6f} s")
+    
+
 
 def bench_mark_read():
     start = perf_counter()
@@ -181,11 +192,16 @@ def bench_mark_read():
 
     end = perf_counter()
     total_time = end - start
-    reading_speed = int(row * len(column_name) / total_time)
+    reading_speed = int(row * (len(column_name) - 2) / total_time)
     print("total row is ", row)
     print(f"reading data time is {total_time} s")
     print(f"reading data speed is {reading_speed} points/s")
+    results["reading_time"] = round(total_time, 6)
+    results["reading_speed"] = reading_speed
 
 
 bench_mark_write()
 bench_mark_read()
+
+with open("/result/results_python.json", "w") as f:
+    json.dump(results, f, indent=2)
