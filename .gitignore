@@ -1,0 +1,3 @@
+benchmark_core/cpp/cmake-build-debug/*
+benchmark_core/cpp/build/*
+benchmark_core/cpp/.idea
