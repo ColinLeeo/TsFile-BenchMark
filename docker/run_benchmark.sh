@@ -6,7 +6,7 @@ echo "Starting building and running the benchmark..."
 cd /workspace/tsfile
 
 # build TsFile java and install it.
-mvn install -P with-java -DskipTests
+./mvnw install -P with-java -DskipTests
 
 # build TsFile cpp and python
 ./mvnw clean package -P with-cpp,with-python -DskipTests
@@ -15,31 +15,35 @@ mvn install -P with-java -DskipTests
 cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.2.0.dev /usr/local/lib/libtsfile.so.2.2.0.dev
 ln -s /usr/local/lib/libtsfile.so.2.2.0.dev /usr/local/lib/libtsfile.so
 cp -rf /workspace/tsfile/cpp/target/build/include /usr/local/include/tsfile 
+echo "/usr/local/lib" > /etc/ld.so.conf.d/tsfile.conf
+ldconfig
 
 # install TsFile python
-pip install /workspace/tsfile/python/tsfile-2.2.0.dev0-cp312-cp312-linux_x86_64.whl
+pip install /workspace/tsfile/python/dist/tsfile-2.2.0.dev0-cp310-cp310-linux_x86_64.whl
 
 # run the benchmark
 
-cd /workspace/TsFile-Benchmark/java
-mvn clean package -DskipTests && java -jar target/benchmark-1.0-SNAPSHOT.jar
+cd /workspace/benchmark_core/java
+./mvnw clean package -DskipTests && java -jar target/benchmark-1.0-SNAPSHOT.jar
+cp ./memory_usage_java.csv /result/
 
-cd /workspace/TsFile-Benchmark/cpp
-bash build.sh && ./benchmark
+cd /workspace/benchmark_core/cpp
+bash build.sh && /workspace/benchmark_core/cpp/build/Release/bench_mark
+cp ./memory_usage_cpp.csv /result/
 
-cd /workspace/TsFile-Benchmark/python
-python3 -m pip install -r requirements.txt
+cd /workspace/benchmark_core/python
 python3 benchmark.py
+cp ./memory_usage_python.csv /result/
 
-
+cd /workspace/tsfile
 ./mvnw clean package -P with-cpp -DskipTests -Dbuild.type=Debug
 cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.2.0.dev /usr/local/lib/libtsfile.so.2.2.0.dev
-cd /workspace/TsFile-Benchmark/cpp
+cd /workspace/benchmark_core/cpp/build/Release
 
 perf record -F 99 -g -- ./benchmark
 perf script > /result/perf_cpp.perf
 
-cd /workspace/TsFile-Benchmark/python
+cd /workspace/benchmark_core/python
 perf record -F 99 -g -- python3 benchmark.py
 perf script > /result/perf_python.perf
 

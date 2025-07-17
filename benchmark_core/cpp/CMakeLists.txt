@@ -33,10 +33,10 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/third_party/lzokay
         ${CMAKE_SOURCE_DIR}/third_party/zlib-1.2.13
         ${CMAKE_SOURCE_DIR}/third_party/google_snappy
-        ${CMAKE_SOURCE_DIR}/third_party/antlr4-cpp-runtime-4/runtime/src
+        /workspace/tsfile/cpp/third_party/antlr4-cpp-runtime-4/runtime/src
         ${CMAKE_SOURCE_DIR}/src
         /opt/homebrew/include
-        /usr/local/include
+        /usr/local/include/tsfile
 )
 
 link_directories(${LIBRARY_OUTPUT_PATH})

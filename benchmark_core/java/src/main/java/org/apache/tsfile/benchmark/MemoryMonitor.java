@@ -32,7 +32,7 @@ import java.nio.file.StandardOpenOption;
 
 public class MemoryMonitor {
   private static final String CSV_HEADER = "iter,memory_usage(kb)\n";
-  private static final String CSV_FILE = "/tmp/memory_usage_java.csv";
+  private static final String CSV_FILE = "memory_usage_java.csv";
   private BufferedWriter writer;
   private int iter = 0;
 

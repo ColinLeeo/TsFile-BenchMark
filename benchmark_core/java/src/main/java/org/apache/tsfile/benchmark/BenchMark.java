@@ -20,7 +20,7 @@
 package org.apache.tsfile.benchmark;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.tsfile.enums.TSDataType;
+import org.apache.tsfile.enums.*;
 import org.apache.tsfile.exception.read.ReadProcessException;
 import org.apache.tsfile.exception.write.NoMeasurementException;
 import org.apache.tsfile.exception.write.NoTableException;
@@ -53,7 +53,7 @@ public class BenchMark {
     private static final Logger LOGGER = LoggerFactory.getLogger(BenchMark.class);
 
     public static void main(String[] args) throws Exception {
-        ConfigLoad configLoad = ConfigLoad.Load("tmp/json");
+        ConfigLoad configLoad = ConfigLoad.Load("/tmp/conf.json");
         System.out.println(configLoad);
 
         MemoryMonitor monitor = new MemoryMonitor();
@@ -66,8 +66,8 @@ public class BenchMark {
         List<String> column_names = new ArrayList<>();
         List<TSDataType> column_types = new ArrayList<>();
         List<ColumnSchema> columnSchemas = new ArrayList<>();
-        columnSchemas.add(new ColumnSchemaBuilder().name("TAG1").dataType(TSDataType.STRING).category(Tablet.ColumnCategory.TAG).build());
-        columnSchemas.add(new ColumnSchemaBuilder().name("TAG2").dataType(TSDataType.STRING).category(Tablet.ColumnCategory.TAG).build());
+        columnSchemas.add(new ColumnSchemaBuilder().name("TAG1").dataType(TSDataType.STRING).category(ColumnCategory.TAG).build());
+        columnSchemas.add(new ColumnSchemaBuilder().name("TAG2").dataType(TSDataType.STRING).category(ColumnCategory.TAG).build());
         column_names.add("TAG1");
         column_names.add("TAG2");
         column_types.add(TSDataType.STRING);
@@ -78,7 +78,7 @@ public class BenchMark {
             int count = configLoad.field_type_vector.get(i);
             TSDataType dataType = configLoad.getTSDataType(i);
             for (int j = 0; j < count; j++) {
-                columnSchemas.add(new ColumnSchemaBuilder().name("FIELD" + fieldIndex).dataType(dataType).category(Tablet.ColumnCategory.FIELD).build());
+                columnSchemas.add(new ColumnSchemaBuilder().name("FIELD" + fieldIndex).dataType(dataType).category(ColumnCategory.FIELD).build());
                 column_names.add("FIELD" + fieldIndex);
                 column_types.add(dataType);
                 fieldIndex++;
@@ -181,7 +181,7 @@ public class BenchMark {
         double totalReadTimeSec = (read_end - read_start) / 1_000_000_000.0;
         System.out.printf("read time is %.6f s%n", totalReadTimeSec);
         Long readSpeed = Math.round(row * column_names.size() / totalReadTimeSec);
-        System.out.printf("read speed is %.6f points/s %n", readSpeed);
+        System.out.printf("read speed is %d points/s %n", readSpeed);
         result.put("reading_time", totalReadTimeSec);
         result.put("reading_speed", readSpeed);
         ObjectMapper mapper = new ObjectMapper();

@@ -77,7 +77,7 @@ TableSchema* gen_table_schema(const std::vector<int>& field_type_vector) {
 
 int bench_mark_cpp_write() {
     int code = common::E_OK;
-    Config config = load_config("/tmp/config.json");
+    Config config = load_config("/tmp/conf.json");
     print_config(true, config);
     remove("tsfile_table_write_bench_mark_cpp.tsfile");
     libtsfile_init();
@@ -223,7 +223,7 @@ int bench_mark_cpp_write() {
     result["tsfile_size"] = size / 1024;
     result["prepare_time"] = pre_time;
     result["write_time"] = write_time;
-    result["writing_speed"] = writing_time;
+    result["writing_speed"] = writing_speed;
     return 0;
 }
 

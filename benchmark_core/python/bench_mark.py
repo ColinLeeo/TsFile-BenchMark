@@ -182,7 +182,7 @@ def bench_mark_write():
 def bench_mark_read():
     start = perf_counter()
     row = 0
-    with TsFileReader("tsfile_table_write_bench_mark.tsfile") as reader:
+    with TsFileReader("tsfile_table_write_bench_mark_python.tsfile") as reader:
         result = reader.query_table("TestTable", column_name)
         first = True
         while result.next():

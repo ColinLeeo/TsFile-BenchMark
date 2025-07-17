@@ -59,7 +59,6 @@ public class ConfigLoad {
             default:
                 throw new RuntimeException("Unknown TSDataType: " + i);
         }
-        return TSDataType.UNKNOWN;
     }
 
     @Override

@@ -20,7 +20,8 @@
 #ifndef TSFILE_BENCH_MARK_BENCH_MARK_UTILS_H
 #define TSFILE_BENCH_MARK_BENCH_MARK_UTILS_H
 #include <vector>
-
+#include <iostream>
+#include <string>
 static const char* data_types_name[5] = {"BOOLEAN", "INT32", "INT64", "FLOAT",
                                          "DOUBLE"};
 static const int data_type[5] = {0, 1, 2, 3, 4};
