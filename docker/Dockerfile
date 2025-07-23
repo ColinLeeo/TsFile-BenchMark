@@ -15,7 +15,7 @@ RUN wget https://apt.llvm.org/llvm-snapshot.gpg.key
 RUN apt-key add llvm-snapshot.gpg.key
 RUN add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" -y 
 RUN apt-get install clang-format-17 -y
-
+RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-17 100
 RUN pip3 install matplotlib  tqdm pandas psutil
 
 WORKDIR /workspace
