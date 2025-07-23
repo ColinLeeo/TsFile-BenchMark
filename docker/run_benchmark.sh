@@ -5,7 +5,7 @@ echo "Starting building and running the benchmark..."
 
 cd /workspace/tsfile
 
-mvn -N io.takari:maven:wrapper
+mvn -N io.takari:maven:wrapper -Dmaven=3.9.6
 # build TsFile java and install it.
 ./mvnw install -P with-java -DskipTests
 
