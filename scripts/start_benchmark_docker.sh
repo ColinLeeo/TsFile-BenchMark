@@ -15,7 +15,7 @@ docker run --rm --privileged \
     -v "/home/colin/dev/TsFile-BenchMark/benchmark_core:/workspace/benchmark_core" \
     -v "$(pwd)/result:/result" \
     -v "$(pwd)/../docker/run_benchmark.sh:/workspace/run_benchmark.sh" \
-    -v "$(pwd)/../benchmark_core/config:/tmp/config" \
+    -v "$(pwd)/../benchmark_core/conf.json:/tmp/conf.json" \
     -w /workspace \
-    tsfile_benchmark:latest \
+    tsfile-benchmark:latest \
     bash -c "chmod +x run_benchmark.sh && ./run_benchmark.sh"

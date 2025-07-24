@@ -25,7 +25,7 @@ pip install /workspace/tsfile/python/dist/tsfile-2.2.0.dev0-cp310-cp310-linux_x8
 # run the benchmark
 
 cd /workspace/benchmark_core/java
-./mvnw clean package -DskipTests && java -jar target/benchmark-1.0-SNAPSHOT.jar
+mvn clean package -DskipTests && java -jar target/benchmark-1.0-SNAPSHOT.jar
 cp ./memory_usage_java.csv /result/
 
 cd /workspace/benchmark_core/cpp
@@ -33,7 +33,7 @@ bash build.sh && /workspace/benchmark_core/cpp/build/Release/bench_mark
 cp ./memory_usage_cpp.csv /result/
 
 cd /workspace/benchmark_core/python
-python3 benchmark.py
+python3 bench_mark.py
 cp ./memory_usage_python.csv /result/
 
 cd /workspace/tsfile
