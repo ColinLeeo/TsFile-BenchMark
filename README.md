@@ -1,24 +1,46 @@
 ## BenchMark For TsFile multi-language
 
+This repo compares **TsFile** and **Parquet** using the same config and metrics (prepare/write/read time, throughput, file size, memory).
+
+### Project structure
+
+```
+benchmark_core/
+├── conf.json              # Shared config (tablet_num, tag1_num, tag2_num, timestamp_per_tag, field_type_vector)
+├── tsfile/                # TsFile benchmarks
+│   ├── java/
+│   ├── python/
+│   └── cpp/
+└── parquet/               # Parquet benchmarks
+    ├── java/
+    ├── python/
+    └── cpp/
+```
 
 ### Output
-The benchmark generates the following output files:
 
-`benchmark_language.json` – A summary file in JSON format containing:
-    Data preparation time(s).
-    Data writing time(s).
-    Total execution time(s).
-    Writing throughput (points/s)
+Results under `/result` (or `result/` when run locally):
 
-`memory_usage_{language}.csv` – A CSV file tracking memory usage over time during execution.
+| Format  | Language | Summary JSON              | Memory CSV                    |
+|---------|----------|---------------------------|-------------------------------|
+| TsFile  | Java     | `results_java.json`       | `memory_usage_java.csv`       |
+| TsFile  | Python   | `results_python.json`     | `memory_usage_python.csv`     |
+| TsFile  | C++      | (console)                 | `memory_usage_cpp.csv`        |
+| Parquet | Java     | `results_parquet_java.json`   | `memory_usage_parquet_java.csv`  |
+| Parquet | Python   | `results_parquet_python.json` | `memory_usage_parquet_python.csv` |
+| Parquet | C++      | `results_parquet_cpp.json`    | `memory_usage_parquet_cpp.csv`   |
+
+Each JSON contains: `tsfile_size` (KB), `prepare_time`, `write_time`, `writing_speed`, `reading_time`, `reading_speed`.
 
 Profile output files (for Python and C++):
 Flamegraph-related profiling data will be generated to assist with performance analysis.
 
 
-### requiement
+### Requirements
 
-python: tqdm
+- Python: `tqdm`, `psutil`, `pyarrow` (for Parquet Python)
+- Java: Maven (for TsFile and Parquet Java)
+- C++: CMake, TsFile C++ (for TsFile C++), Arrow C++ / Parquet C++ (for Parquet C++)
 
 
 

@@ -1,0 +1,3 @@
+org/apache/tsfile/benchmark/parquet/MemoryMonitor.class
+org/apache/tsfile/benchmark/parquet/ConfigLoad.class
+org/apache/tsfile/benchmark/parquet/ParquetBenchMark.class
