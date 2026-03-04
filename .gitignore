@@ -2,7 +2,7 @@ benchmark_core/tsfile/cpp/cmake-build-debug/*
 benchmark_core/tsfile/cpp/build/*
 benchmark_core/tsfile/cpp/.idea
 benchmark_core/tsfile/java/.idea
-benchmark_core/parquet/
+benchmark_core/parquet/*/*
 */*.csv
 */*.tsfile
 tsfile
