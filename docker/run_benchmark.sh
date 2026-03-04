@@ -12,12 +12,12 @@ mvn -N io.takari:maven:wrapper -Dmaven=3.9.6
 ./mvnw clean package -P with-cpp,with-python -DskipTests
 
 # Install TsFile C++ and Python
-cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.2.0.dev /usr/local/lib/libtsfile.so.2.2.0.dev
-ln -sf /usr/local/lib/libtsfile.so.2.2.0.dev /usr/local/lib/libtsfile.so
+cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.*.*.dev /usr/local/lib/libtsfile.so.2.*.*.dev
+ln -sf /usr/local/lib/libtsfile.so.2.*.*.dev /usr/local/lib/libtsfile.so
 cp -rf /workspace/tsfile/cpp/target/build/include /usr/local/include/tsfile
 echo "/usr/local/lib" > /etc/ld.so.conf.d/tsfile.conf
 ldconfig
-pip install /workspace/tsfile/python/dist/tsfile-2.2.0.dev0-cp310-cp310-linux_x86_64.whl
+pip install /workspace/tsfile/python/dist/tsfile-2.*.*.dev0-cp310-cp310-linux_x86_64.whl
 
 # ---------- TsFile benchmarks ----------
 echo "Running TsFile benchmarks..."
@@ -53,7 +53,7 @@ cp -f memory_usage_parquet_cpp.csv /result/ 2>/dev/null || true
 if [ -d /workspace/FlameGraph ]; then
   cd /workspace/tsfile
   ./mvnw clean package -P with-cpp -DskipTests -Dbuild.type=Debug
-  cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.2.0.dev /usr/local/lib/libtsfile.so.2.2.0.dev
+  cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.*.*.dev /usr/local/lib/libtsfile.so.2.*.*.dev
   cd /workspace/benchmark_core/tsfile/cpp/build/Release
   perf record -F 99 -g -- ./bench_mark 2>/dev/null || true
   perf script > /result/perf_cpp.perf 2>/dev/null || true

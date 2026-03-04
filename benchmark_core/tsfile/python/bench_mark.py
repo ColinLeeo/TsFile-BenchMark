@@ -111,6 +111,9 @@ def bench_mark_write():
     prepare_time = 0
     writing_time = 0
     csv_writer.writerow([iter_num, get_memory_usage_kb()])
+    tsfile_path = "tsfile_table_write_bench_mark_python.tsfile"
+    if os.path.exists(tsfile_path):
+        os.remove(tsfile_path)
     iter_num += 1
     with TsFileTableWriter("tsfile_table_write_bench_mark_python.tsfile", table_schema) as writer:
         csv_writer.writerow([iter_num, get_memory_usage_kb()])
