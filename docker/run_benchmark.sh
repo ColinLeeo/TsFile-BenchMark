@@ -42,28 +42,30 @@ mvn clean package -DskipTests && java -jar target/benchmark-parquet-1.0-SNAPSHOT
 cp -f memory_usage_parquet_java.csv /result/ 2>/dev/null || true
 
 cd /workspace/benchmark_core/parquet/python
+python3 -c "import pyarrow" 2>/dev/null || python3 -m pip install --no-cache-dir pyarrow
 python3 bench_mark_parquet.py
 cp -f memory_usage_parquet_python.csv /result/ 2>/dev/null || true
 
 cd /workspace/benchmark_core/parquet/cpp
-bash build.sh && ./build/bench_mark_parquet
+bash build.sh
+./build/bench_mark_parquet
 cp -f memory_usage_parquet_cpp.csv /result/ 2>/dev/null || true
 
-# ---------- Flamegraph (TsFile C++/Python only) ----------
-if [ -d /workspace/FlameGraph ]; then
-  cd /workspace/tsfile
-  ./mvnw clean package -P with-cpp -DskipTests -Dbuild.type=Debug
-  cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.*.*.dev /usr/local/lib/libtsfile.so.2.*.*.dev
-  cd /workspace/benchmark_core/tsfile/cpp/build/Release
-  perf record -F 99 -g -- ./bench_mark 2>/dev/null || true
-  perf script > /result/perf_cpp.perf 2>/dev/null || true
-  cd /workspace/benchmark_core/tsfile/python
-  perf record -F 99 -g -- python3 bench_mark.py 2>/dev/null || true
-  perf script > /result/perf_python.perf 2>/dev/null || true
-  /workspace/FlameGraph/stackcollapse-perf.pl /result/perf_cpp.perf > /result/cpp_flamegraph.txt 2>/dev/null || true
-  /workspace/FlameGraph/flamegraph.pl /result/cpp_flamegraph.txt > /result/cpp_flamegraph.svg 2>/dev/null || true
-  /workspace/FlameGraph/stackcollapse-perf.pl /result/perf_python.perf > /result/python_flamegraph.txt 2>/dev/null || true
-  /workspace/FlameGraph/flamegraph.pl /result/python_flamegraph.txt > /result/python_flamegraph.svg 2>/dev/null || true
-fi
+# # ---------- Flamegraph (TsFile C++/Python only) ----------
+# if [ -d /workspace/FlameGraph ]; then
+#   cd /workspace/tsfile
+#   ./mvnw clean package -P with-cpp -DskipTests -Dbuild.type=Debug
+#   cp /workspace/tsfile/cpp/target/build/lib/libtsfile.so.2.*.*.dev /usr/local/lib/libtsfile.so.2.*.*.dev
+#   cd /workspace/benchmark_core/tsfile/cpp/build/Release
+#   perf record -F 99 -g -- ./bench_mark 2>/dev/null || true
+#   perf script > /result/perf_cpp.perf 2>/dev/null || true
+#   cd /workspace/benchmark_core/tsfile/python
+#   perf record -F 99 -g -- python3 bench_mark.py 2>/dev/null || true
+#   perf script > /result/perf_python.perf 2>/dev/null || true
+#   /workspace/FlameGraph/stackcollapse-perf.pl /result/perf_cpp.perf > /result/cpp_flamegraph.txt 2>/dev/null || true
+#   /workspace/FlameGraph/flamegraph.pl /result/cpp_flamegraph.txt > /result/cpp_flamegraph.svg 2>/dev/null || true
+#   /workspace/FlameGraph/stackcollapse-perf.pl /result/perf_python.perf > /result/python_flamegraph.txt 2>/dev/null || true
+#   /workspace/FlameGraph/flamegraph.pl /result/python_flamegraph.txt > /result/python_flamegraph.svg 2>/dev/null || true
+# fi
 
 echo "Benchmark completed successfully."

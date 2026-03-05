@@ -46,6 +46,14 @@ def load_config(config_path: str) -> Config:
 PA_TYPES = [pa.bool_(), pa.int32(), pa.int64(), pa.float32(), pa.float64()]
 
 
+def validate_config(config: Config):
+    if len(config.field_type_vector) != 5:
+        raise ValueError("field_type_vector must have exactly 5 elements: BOOLEAN, INT32, INT64, FLOAT, DOUBLE")
+    for idx, value in enumerate(config.field_type_vector):
+        if not isinstance(value, int) or value < 0:
+            raise ValueError(f"field_type_vector[{idx}] must be a non-negative integer, got {value!r}")
+
+
 def build_schema_and_field_names(config: Config):
     """Returns (pa.Schema, list of column names, num_field_columns)."""
     names = ["timestamp", "TAG1", "TAG2"]
@@ -115,8 +123,27 @@ def bench_mark_write(config: Config, schema, names, num_field_columns,
                                     cols[names[col_idx]].append(float(t) * 1.1)
                                 col_idx += 1
 
-            arrays = [pa.array(cols[names[i]]) for i in range(len(names))]
-            table = pa.table(arrays, names=names)
+            expected_len = n
+            for col_name in names:
+                if len(cols[col_name]) != expected_len:
+                    raise ValueError(
+                        f"Column length mismatch for {col_name}: expected {expected_len}, got {len(cols[col_name])}"
+                    )
+
+            arrays = [
+                pa.array(cols[field.name], type=field.type)
+                for field in schema
+            ]
+            table = pa.Table.from_arrays(arrays, schema=schema)
+            if not table.schema.equals(schema):
+                diffs = []
+                for field_idx, field in enumerate(schema):
+                    current_field = table.schema[field_idx]
+                    if current_field.name != field.name or current_field.type != field.type:
+                        diffs.append(
+                            f"{field.name}: expected {field.type}, got {current_field.name}:{current_field.type}"
+                        )
+                raise ValueError("Table schema mismatch: " + "; ".join(diffs))
             prepare_time += perf_counter() - prepare_start
 
             csv_writer.writerow([iter_num_ref[0], get_memory_usage_kb()])
@@ -170,6 +197,7 @@ def bench_mark_read(path: str, num_field_columns: int, results: dict):
 
 def main():
     config = load_config("/tmp/conf.json")
+    validate_config(config)
     schema, names, num_field_columns = build_schema_and_field_names(config)
 
     csv_path = "memory_usage_parquet_python.csv"

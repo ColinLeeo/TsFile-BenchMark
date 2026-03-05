@@ -164,7 +164,7 @@ arrow::Status RunBenchmark(const Config& config) {
     auto write_start = std::chrono::high_resolution_clock::now();
     std::vector<std::shared_ptr<arrow::Array>> all_arrays = {ts_arr, tag1_arr, tag2_arr};
     for (auto& a : field_arrays) all_arrays.push_back(a);
-    ARROW_ASSIGN_OR_RAISE(auto table, arrow::Table::Make(schema, all_arrays));
+    auto table = arrow::Table::Make(schema, all_arrays);
     ARROW_RETURN_NOT_OK(writer->WriteTable(*table, nrows));
     total_write_sec += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - write_start).count();
     timestamp += config.timestamp_per_tag;
