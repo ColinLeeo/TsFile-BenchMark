@@ -76,8 +76,8 @@ fi
 
 git clone git@github.com:ColinLeeo/tsfile.git "$TSFILE_DIR"
 
-echo "Building Docker image: $IMAGE_NAME"
-# docker build "${DOCKER_EXTRA_HOST_ARGS[@]}" "${BUILD_PROXY_ARGS[@]}" -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$ROOT_DIR"
+# echo "Building Docker image: $IMAGE_NAME"
+# # docker build "${DOCKER_EXTRA_HOST_ARGS[@]}" "${BUILD_PROXY_ARGS[@]}" -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$ROOT_DIR"
 
 docker run  --rm --privileged \
   "${DOCKER_EXTRA_HOST_ARGS[@]}" \
