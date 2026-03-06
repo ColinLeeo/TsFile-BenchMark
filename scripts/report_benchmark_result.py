@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from upload_benchmark_assets import publish_result_assets
 from generate_memory_charts import generate_memory_comparison_chart
+from generate_performance_charts import generate_read_write_time_chart
 
 # ------------------- Configuration -------------------
 # Calculate paths relative to project root
@@ -30,11 +31,39 @@ ISSUE_NUMBER = int(os.getenv("ISSUE_NUMBER", "2"))
 REQUEST_TIMEOUT = 15
 # -----------------------------------------------------
 
+METRIC_KEYS_TO_ROUND = ["reading_time", "writing_time", "reading_speed", "writing_speed"]
+
 def _first_value(data, keys):
     for key in keys:
         if key in data and data[key] is not None:
             return data[key]
     return None
+
+
+def normalize_result_metrics_to_two_decimals():
+    """Normalize read/write time and speed values in result JSON files to two decimals."""
+    result_files = TSFILE_JSON + PARQUET_JSON
+    for filename in result_files:
+        file_path = os.path.join(RESULT_DIR, filename)
+        if not os.path.exists(file_path):
+            continue
+
+        with open(file_path, "r") as f:
+            data = json.load(f)
+
+        changed = False
+
+        for key in METRIC_KEYS_TO_ROUND:
+            value = data.get(key)
+            if isinstance(value, (int, float)):
+                rounded = round(float(value), 2)
+                if rounded != value:
+                    data[key] = rounded
+                    changed = True
+
+        if changed:
+            with open(file_path, "w") as f:
+                json.dump(data, f, indent=2)
 
 
 def load_flat_result(json_filename, format_label, lang_label):
@@ -45,10 +74,10 @@ def load_flat_result(json_filename, format_label, lang_label):
     with open(path, "r") as f:
         data = json.load(f)
 
-    read_time_sec = _first_value(data, ["reading_time", "read_time"])
-    write_time_sec = _first_value(data, ["write_time", "writing_time"])
-    read_speed = _first_value(data, ["reading_speed", "read_speed"])
-    write_speed = _first_value(data, ["writing_speed", "write_speed"])
+    read_time_sec = _first_value(data, ["reading_time"])
+    write_time_sec = _first_value(data, ["writing_time"])
+    read_speed = _first_value(data, ["reading_speed"])
+    write_speed = _first_value(data, ["writing_speed"])
     file_size_kb = _first_value(data, ["tsfile_size", "file_size_kb", "file_size"])
 
     read_ms = round(read_time_sec * 1000, 2) if isinstance(read_time_sec, (int, float)) else ""
@@ -59,6 +88,8 @@ def load_flat_result(json_filename, format_label, lang_label):
 
 
 # Step 1: Parse benchmark data (TsFile + Parquet, flat layout)
+normalize_result_metrics_to_two_decimals()
+
 benchmark_data = []
 for fname in TSFILE_JSON:
     if "java" in fname:
@@ -97,6 +128,11 @@ table_rows = [
 
 # Step 2.5: Generate memory usage comparison chart
 try:
+    generate_read_write_time_chart(benchmark_data, RESULT_DIR)
+except Exception as e:
+    print(f"Read/write time chart generation failed: {e}")
+
+try:
     generate_memory_comparison_chart(RESULT_DIR, RESULT_DIR)
 except Exception as e:
     print(f"Memory chart generation skipped or failed: {e}")
@@ -133,10 +169,17 @@ with open(COMMENT_MD, "w") as f:
     if published_assets:
         image_urls = published_assets.get("image_urls", {})
         if image_urls:
+            f.write("\n#### 📉 Read/Write Time Chart\n\n")
+            for relative_path, image_url in image_urls.items():
+                if os.path.basename(relative_path) == "read_write_time_comparison.png":
+                    image_name = os.path.basename(relative_path)
+                    f.write(f"**{image_name}**\n\n![{image_name}]({image_url})\n\n")
+
             f.write("\n#### 🖼️ Memory Usage Images\n\n")
             for relative_path, image_url in image_urls.items():
                 image_name = os.path.basename(relative_path)
-                f.write(f"**{image_name}**\n\n![{image_name}]({image_url})\n\n")
+                if "memory_usage" in image_name:
+                    f.write(f"**{image_name}**\n\n![{image_name}]({image_url})\n\n")
 
 # Step 4: Upload comment to GitHub (optional)
 print(f"Report written to {COMMENT_MD}")

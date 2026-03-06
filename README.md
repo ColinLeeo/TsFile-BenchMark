@@ -30,7 +30,7 @@ Results under `/result` (or `result/` when run locally):
 | Parquet | Python   | `results_parquet_python.json` | `memory_usage_parquet_python.csv` |
 | Parquet | C++      | `results_parquet_cpp.json`    | `memory_usage_parquet_cpp.csv`   |
 
-Each JSON contains: `tsfile_size` (KB), `prepare_time`, `write_time`, `writing_speed`, `reading_time`, `reading_speed`.
+Each JSON contains: `tsfile_size` (KB), `prepare_time`, `writing_time`, `writing_speed`, `reading_time`, `reading_speed`.
 
 Profile output files (for Python and C++):
 Flamegraph-related profiling data will be generated to assist with performance analysis.

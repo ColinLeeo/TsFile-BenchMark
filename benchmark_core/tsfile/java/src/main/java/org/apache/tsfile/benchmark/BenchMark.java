@@ -52,6 +52,10 @@ import java.util.Map;
 public class BenchMark {
     private static final Logger LOGGER = LoggerFactory.getLogger(BenchMark.class);
 
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
     public static void main(String[] args) throws Exception {
         ConfigLoad configLoad = ConfigLoad.Load("/tmp/conf.json");
         System.out.println(configLoad);
@@ -163,9 +167,9 @@ public class BenchMark {
         System.out.printf("writing speed is %d points/s%n", (long) writingSpeed);
         Map<String, Object> result = new HashMap<>();
         result.put("tsfile_size", size / 1024);
-        result.put("prepare_time", totalPrepareTimeSec);
-        result.put("write_time", totalWriteTimeSec);
-        result.put("writing_speed", writingSpeed);
+        result.put("prepare_time", round2(totalPrepareTimeSec));
+        result.put("writing_time", round2(totalWriteTimeSec));
+        result.put("writing_speed", round2(writingSpeed));
 
 
         Integer row = 0;
@@ -182,8 +186,8 @@ public class BenchMark {
         System.out.printf("read time is %.6f s%n", totalReadTimeSec);
         Long readSpeed = Math.round(row * column_names.size() / totalReadTimeSec);
         System.out.printf("read speed is %d points/s %n", readSpeed);
-        result.put("reading_time", totalReadTimeSec);
-        result.put("reading_speed", readSpeed);
+        result.put("reading_time", round2(totalReadTimeSec));
+        result.put("reading_speed", round2(readSpeed));
         ObjectMapper mapper = new ObjectMapper();
         mapper.writerWithDefaultPrettyPrinter().writeValue(new File("/result/results_java.json"), result);
     }

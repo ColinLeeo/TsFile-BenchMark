@@ -8,6 +8,8 @@ ROOT_DIR="$(cd "$ROOT_DIR" && pwd)"
 RESULT_DIR="${RESULT_DIR:-$ROOT_DIR/result}"
 TSFILE_DIR="${TSFILE_DIR:-$ROOT_DIR/tsfile}"
 BENCH_CORE_DIR="$ROOT_DIR/benchmark_core"
+HOST_UID="${HOST_UID:-$(id -u)}"
+HOST_GID="${HOST_GID:-$(id -g)}"
 
 RUN_BENCH_SH="$ROOT_DIR/docker/run_benchmark.sh"
 DOCKERFILE_PATH="$ROOT_DIR/docker/Dockerfile"
@@ -59,6 +61,8 @@ echo "RESULT_DIR    = $RESULT_DIR"
 echo "RUN_BENCH_SH  = $RUN_BENCH_SH"
 echo "DOCKERFILE    = $DOCKERFILE_PATH"
 echo "IMAGE_NAME    = $IMAGE_NAME"
+echo "HOST_UID      = $HOST_UID"
+echo "HOST_GID      = $HOST_GID"
 echo "HTTP_PROXY    = ${HTTP_PROXY_FOR_DOCKER:-<empty>}"
 echo "HTTPS_PROXY   = ${HTTPS_PROXY_FOR_DOCKER:-<empty>}"
 echo "NO_PROXY      = ${NO_PROXY_VALUE:-<empty>}"
@@ -82,6 +86,8 @@ git clone git@github.com:ColinLeeo/tsfile.git "$TSFILE_DIR"
 docker run  --rm --privileged \
   "${DOCKER_EXTRA_HOST_ARGS[@]}" \
   "${RUN_PROXY_ARGS[@]}" \
+  -e "HOST_UID=$HOST_UID" \
+  -e "HOST_GID=$HOST_GID" \
   -v "$TSFILE_DIR:/workspace/tsfile" \
   -v "$BENCH_CORE_DIR:/workspace/benchmark_core" \
   -v "$RESULT_DIR:/result" \

@@ -23,6 +23,7 @@
 #include <arrow/table.h>
 #include <arrow/util/macros.h>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -203,13 +204,15 @@ arrow::Status RunBenchmark(const Config& config) {
   std::cout << "Read time is " << read_sec << " s\n";
   std::cout << "Reading speed is " << reading_speed << " points/s\n";
 
+  auto round2 = [](double value) { return std::round(value * 100.0) / 100.0; };
+
   nlohmann::json result;
   result["tsfile_size"] = file_size / 1024;
-  result["prepare_time"] = total_prepare_sec;
-  result["write_time"] = total_write_sec;
-  result["writing_speed"] = writing_speed;
-  result["reading_time"] = read_sec;
-  result["reading_speed"] = reading_speed;
+  result["prepare_time"] = round2(total_prepare_sec);
+  result["writing_time"] = round2(total_write_sec);
+  result["writing_speed"] = round2(writing_speed);
+  result["reading_time"] = round2(read_sec);
+  result["reading_speed"] = round2(static_cast<double>(reading_speed));
 
   std::ofstream json_out("/result/results_parquet_cpp.json");
   if (json_out.is_open())

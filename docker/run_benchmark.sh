@@ -3,6 +3,14 @@ set -e
 
 echo "Starting building and running the benchmark..."
 
+fix_result_permissions() {
+	if [[ -n "${HOST_UID:-}" && -n "${HOST_GID:-}" ]]; then
+		chown -R "${HOST_UID}:${HOST_GID}" /result 2>/dev/null || true
+	fi
+}
+
+trap fix_result_permissions EXIT
+
 # Ensure config is available for all benchmarks
 cp /workspace/benchmark_core/conf.json /tmp/conf.json
 

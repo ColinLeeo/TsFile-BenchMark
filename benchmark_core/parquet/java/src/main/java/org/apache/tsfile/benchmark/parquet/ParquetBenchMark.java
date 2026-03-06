@@ -40,6 +40,10 @@ import java.util.Map;
 
 public class ParquetBenchMark {
 
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
     public static void main(String[] args) throws Exception {
         ConfigLoad config = ConfigLoad.Load("/tmp/conf.json");
         MemoryMonitor monitor = new MemoryMonitor();
@@ -155,11 +159,11 @@ public class ParquetBenchMark {
 
         Map<String, Object> result = new HashMap<>();
         result.put("tsfile_size", size / 1024);
-        result.put("prepare_time", prepareSec);
-        result.put("write_time", writeSec);
-        result.put("writing_speed", writingSpeed);
-        result.put("reading_time", readSec);
-        result.put("reading_speed", readingSpeed);
+        result.put("prepare_time", round2(prepareSec));
+        result.put("writing_time", round2(writeSec));
+        result.put("writing_speed", round2(writingSpeed));
+        result.put("reading_time", round2(readSec));
+        result.put("reading_speed", round2(readingSpeed));
 
         new ObjectMapper().writerWithDefaultPrettyPrinter()
                 .writeValue(new File("/result/results_parquet_java.json"), result);

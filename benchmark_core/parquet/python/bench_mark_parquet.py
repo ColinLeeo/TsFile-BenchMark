@@ -165,7 +165,7 @@ def bench_mark_write(config: Config, schema, names, num_field_columns,
         config.tablet_num * config.tag1_num * config.tag2_num
         * config.timestamp_per_tag * num_field_columns
     )
-    writing_speed = int(total_points / (prepare_time + writing_time))
+    writing_speed = total_points / (prepare_time + writing_time)
 
     print("Finish benchmark for Parquet (Python)")
     print(f"Parquet size is {size} bytes ~ {size // 1024} KB")
@@ -174,9 +174,9 @@ def bench_mark_write(config: Config, schema, names, num_field_columns,
     print(f"Writing speed is {writing_speed} points/s")
 
     results["tsfile_size"] = size // 1024
-    results["prepare_time"] = round(prepare_time, 6)
-    results["write_time"] = round(writing_time, 6)
-    results["writing_speed"] = writing_speed
+    results["prepare_time"] = round(prepare_time, 2)
+    results["writing_time"] = round(writing_time, 2)
+    results["writing_speed"] = round(writing_speed, 2)
     return out_path, num_field_columns
 
 
@@ -187,12 +187,12 @@ def bench_mark_read(path: str, num_field_columns: int, results: dict):
         for batch in pf.iter_batches():
             row_count += batch.num_rows
     total_time = perf_counter() - start
-    reading_speed = int(row_count * num_field_columns / total_time) if total_time > 0 else 0
+    reading_speed = (row_count * num_field_columns / total_time) if total_time > 0 else 0
     print("Total rows:", row_count)
     print(f"Reading time is {total_time:.6f} s")
     print(f"Reading speed is {reading_speed} points/s")
-    results["reading_time"] = round(total_time, 6)
-    results["reading_speed"] = reading_speed
+    results["reading_time"] = round(total_time, 2)
+    results["reading_speed"] = round(reading_speed, 2)
 
 
 def main():

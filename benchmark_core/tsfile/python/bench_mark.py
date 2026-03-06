@@ -172,12 +172,12 @@ def bench_mark_write():
     print(f"Fsfile size is {size} bytes ~ {size // 1024}KB")
     print(f"Prepare data time is {prepare_time:.6f} s")
     print(f"Writing data time is {writing_time:.6f} s")
-    writing_speed = int(total_points / (prepare_time + writing_time))
+    writing_speed = total_points / (prepare_time + writing_time)
     print(f"Writing speed is {writing_speed} points/s")
     results["tsfile_size"] = size // 1024
-    results["prepare_time"] = round(prepare_time, 6)
-    results["writing_time"] = round(writing_time, 6)
-    results["writing_speed"] = writing_speed
+    results["prepare_time"] = round(prepare_time, 2)
+    results["writing_time"] = round(writing_time, 2)
+    results["writing_speed"] = round(writing_speed, 2)
 
     
 
@@ -193,12 +193,12 @@ def bench_mark_read():
 
     end = perf_counter()
     total_time = end - start
-    reading_speed = int(row * (len(column_name) - 2) / total_time)
+    reading_speed = row * (len(column_name) - 2) / total_time
     print("total row is ", row)
     print(f"reading data time is {total_time} s")
     print(f"reading data speed is {reading_speed} points/s")
-    results["reading_time"] = round(total_time, 6)
-    results["reading_speed"] = reading_speed
+    results["reading_time"] = round(total_time, 2)
+    results["reading_speed"] = round(reading_speed, 2)
 
 
 bench_mark_write()

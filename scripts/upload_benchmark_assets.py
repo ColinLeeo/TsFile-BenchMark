@@ -77,6 +77,14 @@ def publish_result_assets(
 
     _run_git(root, ["rev-parse", "--is-inside-work-tree"])
     original_ref = _run_git(root, ["rev-parse", "--abbrev-ref", "HEAD"])
+    
+    # Save original remote URL to restore later
+    original_remote_url = None
+    try:
+        original_remote_url = _run_git(root, ["remote", "get-url", remote])
+    except GitPublishError:
+        pass
+    
     files_to_add = json_files + image_files
 
     # Create temporary directory to store files
@@ -88,7 +96,11 @@ def publish_result_assets(
             relative_path = file_path.relative_to(root)
             dest_path = temp_path / relative_path
             dest_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(file_path, dest_path)
+            try:
+                # Use copy() instead of copy2() to avoid permission issues with root-owned files
+                shutil.copy(file_path, dest_path)
+            except PermissionError as e:
+                raise GitPublishError(f"Permission denied copying {file_path}. Files may be owned by root. Run: sudo chown -R $USER:$USER {file_path.parent}")
 
         try:
             branch_exists = True
@@ -108,7 +120,7 @@ def publish_result_assets(
                 source_path = temp_path / relative_path
                 dest_path = root / relative_path
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source_path, dest_path)
+                shutil.copy(source_path, dest_path)
 
             relative_files = [str(path.relative_to(root)).replace(os.sep, "/") for path in files_to_add]
             _run_git(root, ["add", *relative_files])
@@ -123,17 +135,29 @@ def publish_result_assets(
             if has_staged_changes:
                 _run_git(root, ["commit", "-m", commit_message])
 
-            _run_git(root, ["push", remote, branch])
-            commit_sha = _run_git(root, ["rev-parse", "HEAD"])
+            # Set authenticated remote URL with token before pushing
+            github_token = os.getenv("GITHUB_TOKEN")
+            if not repo_slug:
+                # Try to parse from existing remote URL
+                try:
+                    remote_url = _run_git(root, ["remote", "get-url", remote])
+                    repo_slug = _parse_repo_slug(remote_url)
+                except GitPublishError:
+                    raise GitPublishError("Cannot determine repository slug. Please provide repo_slug parameter.")
+            
+            if github_token and repo_slug:
+                auth_url = f"https://{github_token}@github.com/{repo_slug}.git"
+                _run_git(root, ["remote", "set-url", remote, auth_url])
+                print(f"✅ Set authenticated remote URL for {remote}")
+            else:
+                raise GitPublishError("GITHUB_TOKEN or repo_slug not available for authentication")
 
-            slug = repo_slug.strip()
-            if not slug:
-                remote_url = _run_git(root, ["remote", "get-url", remote])
-                slug = _parse_repo_slug(remote_url)
+            _run_git(root, ["push", "-u", remote, branch])
+            commit_sha = _run_git(root, ["rev-parse", "HEAD"])
 
             def build_raw_url(path: Path) -> str:
                 relative_path = str(path.relative_to(root)).replace(os.sep, "/")
-                return f"https://raw.githubusercontent.com/{slug}/{commit_sha}/{relative_path}"
+                return f"https://raw.githubusercontent.com/{repo_slug}/{commit_sha}/{relative_path}"
 
             image_urls = {str(path.relative_to(root)).replace(os.sep, "/"): build_raw_url(path) for path in image_files}
 
@@ -143,6 +167,14 @@ def publish_result_assets(
                 "image_urls": image_urls,
             }
         finally:
+            # Restore original remote URL if it was changed
+            if original_remote_url:
+                try:
+                    _run_git(root, ["remote", "set-url", remote, original_remote_url])
+                except GitPublishError:
+                    pass
+            
+            # Restore original branch
             current_ref = _run_git(root, ["rev-parse", "--abbrev-ref", "HEAD"])
             if current_ref != original_ref:
                 _run_git(root, ["checkout", original_ref])

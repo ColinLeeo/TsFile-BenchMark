@@ -20,6 +20,7 @@
 #include <reader/tsfile_reader.h>
 
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -211,19 +212,21 @@ int bench_mark_cpp_write() {
 
     double pre_time = prepare_time / 1000.0 / 1000.0;
     double write_time = writing_time / 1000.0 / 1000.0;
-    double writing_speed = static_cast<long long>(
+    auto round2 = [](double value) { return std::round(value * 100.0) / 100.0; };
+
+    double writing_speed =
         config.tablet_num * config.tag1_num * config.tag2_num *
         config.timestamp_per_tag * (data_types.size() - 2) /
-        (pre_time + write_time));
+        (pre_time + write_time);
     std::cout << "Preparing time is " << pre_time << " s" << std::endl;
     std::cout << "Writing time is " << write_time << " s" << std::endl;
     std::cout << "writing speed is " << writing_speed << " points/s"
               << std::endl;
 
     result["tsfile_size"] = size / 1024;
-    result["prepare_time"] = pre_time;
-    result["write_time"] = write_time;
-    result["writing_speed"] = writing_speed;
+    result["prepare_time"] = round2(pre_time);
+    result["writing_time"] = round2(write_time);
+    result["writing_speed"] = round2(writing_speed);
     return 0;
 }
 
@@ -257,8 +260,10 @@ int bench_mark_cpp_read() {
     std::cout << "read speed:"
               << static_cast<int64_t>(total_points / reading_time)
               << " points/s" << std::endl;
-    result["reading_time"] = reading_time;
-    result["reading_speed"] = static_cast<int64_t>(total_points / reading_time);
+    auto round2 = [](double value) { return std::round(value * 100.0) / 100.0; };
+    double reading_speed = static_cast<double>(total_points) / reading_time;
+    result["reading_time"] = round2(reading_time);
+    result["reading_speed"] = round2(reading_speed);
 
     return 0;
 }
