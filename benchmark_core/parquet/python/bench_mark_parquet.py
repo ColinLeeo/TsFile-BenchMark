@@ -34,7 +34,7 @@ class Config:
     tag2_num: int
     timestamp_per_tag: int
     field_type_vector: list  # 5 elements: BOOLEAN, INT32, INT64, FLOAT, DOUBLE counts
-
+    
 
 def load_config(config_path: str) -> Config:
     with open(config_path, "r") as f:

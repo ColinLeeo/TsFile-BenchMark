@@ -1,57 +1,73 @@
 import os
 import json
-import pandas as pd
-import matplotlib.pyplot as plt
 import requests
 import re
 from datetime import datetime
+from upload_benchmark_assets import publish_result_assets
+from generate_memory_charts import generate_memory_comparison_chart
 
 # ------------------- Configuration -------------------
+# Calculate paths relative to project root
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = "result"
-OUTPUT_DIR = "generated"
-COMMENT_MD = os.path.join(OUTPUT_DIR, "benchmark_comment.md")
-IMAGE_FILE = os.path.join(OUTPUT_DIR, "memory_usage.png")
+RESULT_DIR = os.path.join(REPO_ROOT, BASE_DIR)
+COMMENT_MD = os.path.join(RESULT_DIR, "benchmark_comment.md")
 
 # Flat layout (Docker output): result/results_java.json, result/results_parquet_java.json, result/memory_usage_*.csv
-TSFILE_JSON = ["results_java.json", "results_python.json"]
+TSFILE_JSON = ["results_java.json", "results_python.json", "results_cpp.json"]
 PARQUET_JSON = ["results_parquet_java.json", "results_parquet_python.json", "results_parquet_cpp.json"]
 
 # GitHub settings (fill in before use)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-try:
-    if not GITHUB_TOKEN:
-        GITHUB_TOKEN = open(os.path.expanduser("~/.github_token")).read().strip()
-except FileNotFoundError:
-    GITHUB_TOKEN = ""
-REPO = "your_user/your_repo"  # Replace with your repo, e.g. "apache/tsfile"
-ISSUE_NUMBER = 1              # Replace with your issue number (integer)
+# Asset repository (for uploading images and benchmark data)
+ASSET_REPO = os.getenv("ASSET_REPO", "ColinLeeo/TsFile-BenchMark").strip()
+ASSET_PUBLISH_BRANCH = os.getenv("BENCHMARK_ASSET_BRANCH", "").strip()
+ASSET_PUBLISH_REMOTE = os.getenv("BENCHMARK_ASSET_REMOTE", "").strip()
+ASSET_COMMIT_MESSAGE = f"chore(benchmark): publish benchmark assets on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+# Issue repository (for posting benchmark results)
+ISSUE_REPO = os.getenv("ISSUE_REPO", "ColinLeeo/tsfile").strip()
+ISSUE_NUMBER = int(os.getenv("ISSUE_NUMBER", "2"))
+REQUEST_TIMEOUT = 15
 # -----------------------------------------------------
 
-# Create output directory
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+def _first_value(data, keys):
+    for key in keys:
+        if key in data and data[key] is not None:
+            return data[key]
+    return None
 
 
 def load_flat_result(json_filename, format_label, lang_label):
-    """Load one benchmark JSON from BASE_DIR (flat). Returns row or None if missing."""
-    path = os.path.join(BASE_DIR, json_filename)
+    """Load one benchmark JSON from RESULT_DIR (flat). Returns row or None if missing."""
+    path = os.path.join(RESULT_DIR, json_filename)
     if not os.path.exists(path):
         return None
     with open(path, "r") as f:
         data = json.load(f)
-    # Our keys: reading_time (s), reading_speed, write_time (s), writing_speed, tsfile_size (KB)
-    read_ms = round(data.get("reading_time", 0) * 1000, 2) if data.get("reading_time") is not None else ""
-    read_speed = data.get("reading_speed", "")
-    write_ms = round(data.get("write_time", 0) * 1000, 2) if data.get("write_time") is not None else ""
-    write_speed = data.get("writing_speed", "")
-    size_mb = round(data.get("tsfile_size", 0) / 1024, 2) if data.get("tsfile_size") is not None else ""
+
+    read_time_sec = _first_value(data, ["reading_time", "read_time"])
+    write_time_sec = _first_value(data, ["write_time", "writing_time"])
+    read_speed = _first_value(data, ["reading_speed", "read_speed"])
+    write_speed = _first_value(data, ["writing_speed", "write_speed"])
+    file_size_kb = _first_value(data, ["tsfile_size", "file_size_kb", "file_size"])
+
+    read_ms = round(read_time_sec * 1000, 2) if isinstance(read_time_sec, (int, float)) else ""
+    write_ms = round(write_time_sec * 1000, 2) if isinstance(write_time_sec, (int, float)) else ""
+    size_mb = round(file_size_kb / 1024, 2) if isinstance(file_size_kb, (int, float)) else ""
+
     return [format_label, lang_label, read_ms, read_speed, write_ms, write_speed, size_mb]
 
 
 # Step 1: Parse benchmark data (TsFile + Parquet, flat layout)
 benchmark_data = []
 for fname in TSFILE_JSON:
-    lang = "java" if "java" in fname else "python"
-    row = load_flat_result(fname, "TsFile", lang.capitalize())
+    if "java" in fname:
+        lang_label = "Java"
+    elif "python" in fname:
+        lang_label = "Python"
+    else:
+        lang_label = "C++"
+    row = load_flat_result(fname, "TsFile", lang_label)
     if row:
         benchmark_data.append(row)
 for fname in PARQUET_JSON:
@@ -67,58 +83,65 @@ for fname in PARQUET_JSON:
 
 if not benchmark_data:
     raise FileNotFoundError(
-        f"No benchmark JSON found under {BASE_DIR}. "
+        f"No benchmark JSON found under {RESULT_DIR}. "
         f"Expected e.g. {TSFILE_JSON}, {PARQUET_JSON}"
     )
 
 # Step 2: Generate markdown table
-table_header = "| 格式   | 语言    | 读取时间(ms) | 读取速度(points/s) | 写入时间(ms) | 写入速度(points/s) | 文件大小(MB) |\n"
+table_header = "| Format | Language | Read Time (ms) | Read Speed (points/s) | Write Time (ms) | Write Speed (points/s) | File Size (MB) |\n"
 table_divider = "|--------|---------|--------------|---------------------|---------------|---------------------|---------------|\n"
 table_rows = [
     f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]} | {row[6]} |"
     for row in benchmark_data
 ]
 
-# Step 3: Plot memory usage — one subplot per language, TsFile vs Parquet in same chart
-fig, axes = plt.subplots(1, 3, figsize=(14, 5))
-per_lang = [
-    ("Java", "memory_usage_java.csv", "memory_usage_parquet_java.csv"),
-    ("Python", "memory_usage_python.csv", "memory_usage_parquet_python.csv"),
-    ("C++", "memory_usage_cpp.csv", "memory_usage_parquet_cpp.csv"),
-]
-for ax, (lang, tsfile_csv, parquet_csv) in zip(axes, per_lang):
-    for csv_name, label in [(tsfile_csv, "TsFile"), (parquet_csv, "Parquet")]:
-        if csv_name is None:
-            continue
-        csv_path = os.path.join(BASE_DIR, csv_name)
-        if os.path.exists(csv_path):
-            df = pd.read_csv(csv_path)
-            xcol, ycol = df.columns[0], df.columns[1]
-            ax.plot(df[xcol], df[ycol], label=label)
-    ax.set_xlabel("迭代")
-    ax.set_ylabel("内存占用 (KB)")
-    ax.set_title(f"{lang} — TsFile vs Parquet" if parquet_csv else f"{lang} (TsFile)")
-    ax.legend()
-plt.suptitle("内存占用曲线（按语言）", y=1.02)
-plt.tight_layout()
-plt.savefig(IMAGE_FILE)
+# Step 2.5: Generate memory usage comparison chart
+try:
+    generate_memory_comparison_chart(RESULT_DIR, RESULT_DIR)
+except Exception as e:
+    print(f"Memory chart generation skipped or failed: {e}")
 
-# Step 4: Prepare markdown comment
+# Step 3: Prepare markdown comment (text only)
 now_str = datetime.now().strftime("%Y-%m-%d")
+published_assets = None
+
+if ASSET_PUBLISH_BRANCH:
+    try:
+        published_assets = publish_result_assets(
+            repo_root=REPO_ROOT,
+            branch=ASSET_PUBLISH_BRANCH,
+            base_dir=BASE_DIR,
+            remote=ASSET_PUBLISH_REMOTE or "origin",
+            repo_slug=ASSET_REPO,
+            commit_message=ASSET_COMMIT_MESSAGE,
+        )
+        print(
+            f"Published benchmark assets to branch '{published_assets['branch']}' "
+            f"at commit {published_assets['commit_sha']}."
+        )
+    except Exception as e:
+        print(f"Benchmark asset publish skipped or failed: {e}")
+
 with open(COMMENT_MD, "w") as f:
-    f.write(f"### 🧪 Benchmark 结果（{now_str}）\n\n")
-    f.write("#### 📊 性能概览（TsFile vs Parquet）\n\n")
+    f.write(f"### 🧪 Benchmark Results ({now_str})\n\n")
+    f.write("#### 📊 Performance Overview (TsFile vs Parquet)\n\n")
     f.write(table_header)
     f.write(table_divider)
     f.write("\n".join(table_rows))
-    f.write("\n\n")
-    f.write("#### 🧠 内存占用曲线\n\n")
-    f.write(f"![memory usage]({os.path.basename(IMAGE_FILE)})\n")
+    f.write("\n")
 
-# Step 5: Upload comment to GitHub (optional)
-print(f"✅ Report written to {COMMENT_MD} and {IMAGE_FILE}")
+    if published_assets:
+        image_urls = published_assets.get("image_urls", {})
+        if image_urls:
+            f.write("\n#### 🖼️ Memory Usage Images\n\n")
+            for relative_path, image_url in image_urls.items():
+                image_name = os.path.basename(relative_path)
+                f.write(f"**{image_name}**\n\n![{image_name}]({image_url})\n\n")
 
-if GITHUB_TOKEN and REPO and REPO != "your_user/your_repo":
+# Step 4: Upload comment to GitHub (optional)
+print(f"Report written to {COMMENT_MD}")
+
+if GITHUB_TOKEN and ISSUE_REPO:
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json"
@@ -127,31 +150,34 @@ if GITHUB_TOKEN and REPO and REPO != "your_user/your_repo":
         comment_body = f.read()
     try:
         response = requests.post(
-            f"https://api.github.com/repos/{REPO}/issues/{ISSUE_NUMBER}/comments",
+            f"https://api.github.com/repos/{ISSUE_REPO}/issues/{ISSUE_NUMBER}/comments",
             headers=headers,
-            json={"body": comment_body}
+            json={"body": comment_body},
+            timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         comment = response.json()
         comment_id = comment["id"]
         issue_resp = requests.get(
-            f"https://api.github.com/repos/{REPO}/issues/{ISSUE_NUMBER}",
-            headers=headers
+            f"https://api.github.com/repos/{ISSUE_REPO}/issues/{ISSUE_NUMBER}",
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
         )
         issue_resp.raise_for_status()
         original_body = issue_resp.json()["body"]
-        link_line = f"[👉 最新结果](#issuecomment-{comment_id})"
-        if "[👉 最新结果]" in (original_body or ""):
-            updated_body = re.sub(r"\[👉 最新结果\]\(.*?\)", link_line, original_body)
+        link_line = f"[👉 Latest Result](#issuecomment-{comment_id})"
+        if "[👉 Latest Result]" in (original_body or ""):
+            updated_body = re.sub(r"\[👉 Latest Result\]\(.*?\)", link_line, original_body)
         else:
             updated_body = link_line + "\n\n" + (original_body or "")
         requests.patch(
-            f"https://api.github.com/repos/{REPO}/issues/{ISSUE_NUMBER}",
+            f"https://api.github.com/repos/{ISSUE_REPO}/issues/{ISSUE_NUMBER}",
             headers=headers,
-            json={"body": updated_body}
+            json={"body": updated_body},
+            timeout=REQUEST_TIMEOUT,
         ).raise_for_status()
         print("✅ Benchmark comment posted and issue body updated successfully.")
     except Exception as e:
         print(f"⚠️ GitHub upload skipped or failed: {e}")
 else:
-    print("⚠️ GitHub upload skipped (set GITHUB_TOKEN and REPO to enable).")
+    print("⚠️ GitHub upload skipped (set GITHUB_TOKEN and ISSUE_REPO to enable).")
