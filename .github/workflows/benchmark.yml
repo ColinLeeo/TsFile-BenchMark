@@ -21,6 +21,7 @@ permissions:
 
 jobs:
   run-benchmark:
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.actor == vars.BENCHMARK_ALLOWED_ACTOR) }}
     runs-on: [self-hosted, linux]
     timeout-minutes: 180
 
