@@ -30,8 +30,6 @@ jobs:
       ISSUE_REPO: ${{ vars.ISSUE_REPO }}
       ISSUE_NUMBER: ${{ github.event.inputs.issue_number || vars.ISSUE_NUMBER || '2' }}
       TSFILE_GIT_URL: ${{ vars.TSFILE_GIT_URL || 'https://github.com/apache/tsfile.git' }}
-      TSFILE_DIR: ${{ runner.temp }}/tsfile-${{ github.run_id }}-${{ github.run_attempt }}
-
     steps:
       - name: Checkout benchmark repo
         uses: actions/checkout@v4
