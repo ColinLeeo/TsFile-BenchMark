@@ -6,6 +6,7 @@ echo "Starting building and running the benchmark..."
 fix_result_permissions() {
 	if [[ -n "${HOST_UID:-}" && -n "${HOST_GID:-}" ]]; then
 		chown -R "${HOST_UID}:${HOST_GID}" /result 2>/dev/null || true
+		chown -R "${HOST_UID}:${HOST_GID}" /workspace/tsfile 2>/dev/null || true
 	fi
 }
 
@@ -77,4 +78,3 @@ cp -f memory_usage_parquet_cpp.csv /result/ 2>/dev/null || true
 # fi
 
 echo "Benchmark completed successfully."
-rm -rf /workspace/tsfile

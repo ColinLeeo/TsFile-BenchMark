@@ -75,12 +75,31 @@ echo "NO_PROXY      = ${NO_PROXY_VALUE:-<empty>}"
 
 mkdir -p "$RESULT_DIR"
 
-if [ -d "$TSFILE_DIR" ]; then
-  rm -rf "$TSFILE_DIR"
-  echo "TsFile directory found. Removed it."
+if [ -d "$TSFILE_DIR/.git" ]; then
+  echo "TsFile git directory found. Reusing and updating it."
+  if git -C "$TSFILE_DIR" fetch --all --prune; then
+    default_branch="$(git -C "$TSFILE_DIR" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')"
+    if [ -z "$default_branch" ]; then
+      default_branch="main"
+    fi
+    git -C "$TSFILE_DIR" checkout "$default_branch" || true
+    git -C "$TSFILE_DIR" reset --hard "origin/$default_branch" || true
+    git -C "$TSFILE_DIR" clean -fd || true
+  else
+    echo "⚠️ Failed to update existing tsfile repo. Continue with existing files."
+  fi
+elif [ -d "$TSFILE_DIR" ]; then
+  echo "Existing TSFILE_DIR is not a git repo: $TSFILE_DIR"
+  echo "Trying to remove it before cloning..."
+  if ! rm -rf "$TSFILE_DIR"; then
+    TSFILE_DIR="$(mktemp -d "$ROOT_DIR/.tsfile-src.XXXXXX")"
+    echo "⚠️ TSFILE_DIR busy. Fallback to temporary directory: $TSFILE_DIR"
+  fi
 fi
 
-git clone "$TSFILE_GIT_URL" "$TSFILE_DIR"
+if [ ! -d "$TSFILE_DIR/.git" ]; then
+  git clone "$TSFILE_GIT_URL" "$TSFILE_DIR"
+fi
 
 # echo "Building Docker image: $IMAGE_NAME"
 # # docker build "${DOCKER_EXTRA_HOST_ARGS[@]}" "${BUILD_PROXY_ARGS[@]}" -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$ROOT_DIR"

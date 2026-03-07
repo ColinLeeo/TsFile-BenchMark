@@ -81,11 +81,11 @@ def load_flat_result(json_filename, format_label, lang_label):
     write_speed = _first_value(data, ["writing_speed"])
     file_size_kb = _first_value(data, ["tsfile_size", "file_size_kb", "file_size"])
 
-    read_ms = round(read_time_sec * 1000, 2) if isinstance(read_time_sec, (int, float)) else ""
-    write_ms = round(write_time_sec * 1000, 2) if isinstance(write_time_sec, (int, float)) else ""
+    read_sec = round(float(read_time_sec), 2) if isinstance(read_time_sec, (int, float)) else ""
+    write_sec = round(float(write_time_sec), 2) if isinstance(write_time_sec, (int, float)) else ""
     size_mb = round(file_size_kb / 1024, 2) if isinstance(file_size_kb, (int, float)) else ""
 
-    return [format_label, lang_label, read_ms, read_speed, write_ms, write_speed, size_mb]
+    return [format_label, lang_label, read_sec, read_speed, write_sec, write_speed, size_mb]
 
 
 # Step 1: Parse benchmark data (TsFile + Parquet, flat layout)

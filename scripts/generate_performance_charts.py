@@ -13,7 +13,7 @@ LANGUAGE_ORDER = ["Java", "Python", "C++"]
 def generate_read_write_time_chart(benchmark_rows, output_dir):
     """
     benchmark_rows item format:
-    [format_label, language_label, read_ms, read_speed, write_ms, write_speed, size_mb]
+    [format_label, language_label, read_sec, read_speed, write_sec, write_speed, size_mb]
     """
     language_to_values = {
         lang: {
@@ -30,10 +30,10 @@ def generate_read_write_time_chart(benchmark_rows, output_dir):
         if format_label not in ("TsFile", "Parquet"):
             continue
 
-        read_ms = float(row[2]) if isinstance(row[2], (int, float)) else 0.0
-        write_ms = float(row[4]) if isinstance(row[4], (int, float)) else 0.0
-        language_to_values[language_label][format_label]["read"] = round(read_ms / 1000, 2)
-        language_to_values[language_label][format_label]["write"] = round(write_ms / 1000, 2)
+        read_sec = float(row[2]) if isinstance(row[2], (int, float)) else 0.0
+        write_sec = float(row[4]) if isinstance(row[4], (int, float)) else 0.0
+        language_to_values[language_label][format_label]["read"] = round(read_sec, 2)
+        language_to_values[language_label][format_label]["write"] = round(write_sec, 2)
 
     x = np.arange(len(LANGUAGE_ORDER))
     width = 0.35
