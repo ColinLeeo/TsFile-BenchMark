@@ -119,7 +119,7 @@ if not benchmark_data:
     )
 
 # Step 2: Generate markdown table
-table_header = "| Format | Language | Read Time (ms) | Read Speed (points/s) | Write Time (ms) | Write Speed (points/s) | File Size (MB) |\n"
+table_header = "| Format | Language | Read Time (s) | Read Speed (points/s) | Write Time (s) | Write Speed (points/s) | File Size (MB) |\n"
 table_divider = "|--------|---------|--------------|---------------------|---------------|---------------------|---------------|\n"
 table_rows = [
     f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]} | {row[6]} |"

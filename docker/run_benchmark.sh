@@ -77,3 +77,4 @@ cp -f memory_usage_parquet_cpp.csv /result/ 2>/dev/null || true
 # fi
 
 echo "Benchmark completed successfully."
+rm -rf /workspace/tsfile

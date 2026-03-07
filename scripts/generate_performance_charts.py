@@ -32,8 +32,8 @@ def generate_read_write_time_chart(benchmark_rows, output_dir):
 
         read_ms = float(row[2]) if isinstance(row[2], (int, float)) else 0.0
         write_ms = float(row[4]) if isinstance(row[4], (int, float)) else 0.0
-        language_to_values[language_label][format_label]["read"] = round(read_ms, 2)
-        language_to_values[language_label][format_label]["write"] = round(write_ms, 2)
+        language_to_values[language_label][format_label]["read"] = round(read_ms / 1000, 2)
+        language_to_values[language_label][format_label]["write"] = round(write_ms / 1000, 2)
 
     x = np.arange(len(LANGUAGE_ORDER))
     width = 0.35
@@ -48,19 +48,19 @@ def generate_read_write_time_chart(benchmark_rows, output_dir):
 
     axes[0].bar(x - width / 2, tsfile_read, width, label="TsFile")
     axes[0].bar(x + width / 2, parquet_read, width, label="Parquet")
-    axes[0].set_title("Read Time (ms)")
+    axes[0].set_title("Read Time (s)")
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(LANGUAGE_ORDER)
-    axes[0].set_ylabel("Time (ms)")
+    axes[0].set_ylabel("Time (s)")
     axes[0].grid(True, axis="y", alpha=0.3, linestyle="--")
     axes[0].legend()
 
     axes[1].bar(x - width / 2, tsfile_write, width, label="TsFile")
     axes[1].bar(x + width / 2, parquet_write, width, label="Parquet")
-    axes[1].set_title("Write Time (ms)")
+    axes[1].set_title("Write Time (s)")
     axes[1].set_xticks(x)
     axes[1].set_xticklabels(LANGUAGE_ORDER)
-    axes[1].set_ylabel("Time (ms)")
+    axes[1].set_ylabel("Time (s)")
     axes[1].grid(True, axis="y", alpha=0.3, linestyle="--")
     axes[1].legend()
 
