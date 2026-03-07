@@ -7,6 +7,7 @@ ROOT_DIR="$(cd "$ROOT_DIR" && pwd)"
 
 RESULT_DIR="${RESULT_DIR:-$ROOT_DIR/result}"
 TSFILE_DIR="${TSFILE_DIR:-$ROOT_DIR/tsfile}"
+TSFILE_GIT_URL="${TSFILE_GIT_URL:-git@github.com:ColinLeeo/tsfile.git}"
 BENCH_CORE_DIR="$ROOT_DIR/benchmark_core"
 HOST_UID="${HOST_UID:-$(id -u)}"
 HOST_GID="${HOST_GID:-$(id -g)}"
@@ -56,6 +57,7 @@ fi
 
 echo "ROOT_DIR      = $ROOT_DIR"
 echo "TSFILE_DIR    = $TSFILE_DIR"
+echo "TSFILE_GIT_URL= $TSFILE_GIT_URL"
 echo "BENCH_CORE    = $BENCH_CORE_DIR"
 echo "RESULT_DIR    = $RESULT_DIR"
 echo "RUN_BENCH_SH  = $RUN_BENCH_SH"
@@ -78,7 +80,7 @@ if [ -d "$TSFILE_DIR" ]; then
   echo "TsFile directory found. Removed it."
 fi
 
-git clone git@github.com:ColinLeeo/tsfile.git "$TSFILE_DIR"
+git clone "$TSFILE_GIT_URL" "$TSFILE_DIR"
 
 # echo "Building Docker image: $IMAGE_NAME"
 # # docker build "${DOCKER_EXTRA_HOST_ARGS[@]}" "${BUILD_PROXY_ARGS[@]}" -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$ROOT_DIR"
