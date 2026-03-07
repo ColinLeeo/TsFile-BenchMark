@@ -6,3 +6,5 @@ benchmark_core/parquet/*/*
 */*.csv
 */*.tsfile
 tsfile
+result/
+scripts/__pycache__/*
