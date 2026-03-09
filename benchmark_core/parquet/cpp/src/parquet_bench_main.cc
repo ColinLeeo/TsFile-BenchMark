@@ -72,7 +72,12 @@ arrow::Status RunBenchmark(const Config& config) {
   std::shared_ptr<arrow::io::FileOutputStream> outfile;
   ARROW_ASSIGN_OR_RAISE(outfile, arrow::io::FileOutputStream::Open(out_path));
 
-  auto props = parquet::WriterProperties::Builder().build();
+  parquet::WriterProperties::Builder props_builder;
+  props_builder.compression(parquet::Compression::LZ4);
+  props_builder.disable_dictionary();
+  props_builder.enable_dictionary("TAG1");
+  props_builder.enable_dictionary("TAG2");
+  auto props = props_builder.build();
   auto arrow_props = parquet::ArrowWriterProperties::Builder().store_schema()->build();
   std::unique_ptr<parquet::arrow::FileWriter> writer;
   ARROW_ASSIGN_OR_RAISE(

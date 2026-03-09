@@ -30,6 +30,7 @@ import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,10 +63,17 @@ public class ParquetBenchMark {
         long totalWriteNs = 0;
         long timestamp = 0;
 
-        try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(new Path(outPath))
-                .withSchema(schema)
-                .withConf(new Configuration())
-                .build()) {
+        // parquet-avro 1.13.1 only exposes dictionary encoding control via the builder.
+        // DELTA_BINARY_PACKED / BYTE_STREAM_SPLIT require parquet-hadoop 1.14+ builder APIs.
+        AvroParquetWriter.Builder<GenericRecord> writerBuilder =
+                AvroParquetWriter.<GenericRecord>builder(new Path(outPath))
+                        .withSchema(schema)
+                        .withConf(new Configuration())
+                        .withCompressionCodec(CompressionCodecName.LZ4)
+                        .withDictionaryEncoding(false)
+                        .withDictionaryEncoding("TAG1", true)
+                        .withDictionaryEncoding("TAG2", true);
+        try (ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
 
             monitor.recordMemoryUsage();
 

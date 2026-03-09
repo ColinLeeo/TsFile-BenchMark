@@ -69,6 +69,7 @@ def build_schema_and_field_names(config: Config):
     return schema, names, num_field_columns
 
 
+
 def get_memory_usage_kb():
     return psutil.Process(os.getpid()).memory_info().rss // 1024
 
@@ -86,7 +87,8 @@ def bench_mark_write(config: Config, schema, names, num_field_columns,
     csv_writer.writerow([iter_num_ref[0], get_memory_usage_kb()])
     iter_num_ref[0] += 1
 
-    with pq.ParquetWriter(out_path, schema) as writer:
+    with pq.ParquetWriter(out_path, schema, compression='lz4',
+                          use_dictionary=['TAG1', 'TAG2']) as writer:
         csv_writer.writerow([iter_num_ref[0], get_memory_usage_kb()])
         iter_num_ref[0] += 1
 
